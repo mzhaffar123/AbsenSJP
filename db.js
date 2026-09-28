@@ -1,7 +1,13 @@
 const path = require('path');
 const fs = require('fs');
 
-const POSTGRES_URL = process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL_NON_POOLING;
+const POSTGRES_URL = process.env.POSTGRES_URL
+  || process.env.DATABASE_URL
+  || process.env.POSTGRES_URL_NON_POOLING
+  || process.env.STORAGE_URL
+  || process.env.STORAGE_POSTGRES_URL
+  || process.env.NEON_DATABASE_URL
+  || process.env.VERCEL_POSTGRES_URL;
 const IS_VERCEL = !!process.env.VERCEL;
 
 let isPg = false;
