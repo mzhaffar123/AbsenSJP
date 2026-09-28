@@ -9,6 +9,7 @@
     "generate-ssl": "node scripts/generate-ssl.js"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.0",
     "@vercel/postgres": "^0.10.0",
     "better-sqlite3": "^13.0.3",
     "exceljs": "^4.4.0",

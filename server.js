@@ -7,6 +7,14 @@ const morgan = require('morgan');
 const ExcelJS = require('exceljs');
 const db = require('./db');
 
+// Vercel Blob - hanya digunakan saat deploy di Vercel
+const HAS_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
+let blobModule = null;
+if (HAS_BLOB) {
+  try { blobModule = require('@vercel/blob'); } catch (e) { console.warn('Vercel Blob module tidak tersedia:', e.message); }
+}
+let currentBlobUrl = null; // URL Excel terbaru di Vercel Blob
+
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
@@ -289,13 +297,28 @@ async function refreshExcelFile() {
 
   sheet.autoFilter = { from: 'A1', to: 'J1' };
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
-  const temporaryPath = `${EXCEL_PATH}.tmp`;
-  await workbook.xlsx.writeFile(temporaryPath);
-  try {
-    fs.renameSync(temporaryPath, EXCEL_PATH);
-  } catch (error) {
-    fs.rmSync(temporaryPath, { force: true });
-    throw error;
+
+  if (HAS_BLOB && blobModule) {
+    // Di Vercel: simpan ke Vercel Blob Storage (permanen)
+    const buffer = await workbook.xlsx.writeBuffer();
+    const { put } = blobModule;
+    const blob = await put('rekap-absensi.xlsx', buffer, {
+      access: 'public',
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      addRandomSuffix: false
+    });
+    currentBlobUrl = blob.url;
+    console.log('✅ Excel tersimpan ke Vercel Blob:', currentBlobUrl);
+  } else {
+    // Lokal: simpan ke file disk
+    const temporaryPath = `${EXCEL_PATH}.tmp`;
+    await workbook.xlsx.writeFile(temporaryPath);
+    try {
+      fs.renameSync(temporaryPath, EXCEL_PATH);
+    } catch (error) {
+      fs.rmSync(temporaryPath, { force: true });
+      throw error;
+    }
   }
 }
 function queueExcelRefresh() {
@@ -1077,6 +1100,10 @@ app.get('/api/attendance/export.xlsx', async (req, res) => {
     await queueExcelRefresh();
   } catch (error) {
     return res.status(423).json({ error: 'File Excel sedang terbuka atau terkunci. Tutup file tersebut lalu coba lagi.' });
+  }
+  // Jika di Vercel dan ada Blob URL, redirect ke file cloud
+  if (HAS_BLOB && currentBlobUrl) {
+    return res.redirect(302, currentBlobUrl);
   }
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.download(EXCEL_PATH, 'rekap-absensi.xlsx');
