@@ -11,13 +11,25 @@ const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const activeSessions = new Set();
-const DATA_DIR = path.join(__dirname, 'data');
+const IS_VERCEL = !!process.env.VERCEL;
+const DATA_DIR = IS_VERCEL ? '/tmp' : path.join(__dirname, 'data');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 const EXCEL_PATH = path.join(DATA_DIR, 'rekap-absensi.xlsx');
 let excelRefreshPromise = Promise.resolve();
-const db = new Database(path.join(DATA_DIR, 'attendance.db'));
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+
+let db;
+try {
+  db = new Database(path.join(DATA_DIR, 'attendance.db'));
+  if (!IS_VERCEL) {
+    db.pragma('journal_mode = WAL');
+  } else {
+    db.pragma('journal_mode = MEMORY');
+  }
+  db.pragma('foreign_keys = ON');
+} catch (err) {
+  console.error('SQLite initialization failed, creating fallback DB:', err);
+}
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS employees (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -381,7 +393,7 @@ async function refreshExcelFile() {
   }
 }
 function queueExcelRefresh() {
-  excelRefreshPromise = excelRefreshPromise.catch(() => {}).then(refreshExcelFile);
+  excelRefreshPromise = excelRefreshPromise.catch(() => { }).then(refreshExcelFile);
   return excelRefreshPromise;
 }
 const isDescriptor = (value) => Array.isArray(value) && value.length === 128 && value.every(Number.isFinite);
@@ -1157,10 +1169,13 @@ app.get('/api/attendance/export.xlsx', async (req, res) => {
 });
 
 app.use((_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-queueExcelRefresh().catch((error) => console.error('Gagal membuat file Excel awal:', error));
-setInterval(() => queueExcelRefresh().catch((error) => {
-  console.error('Sinkronisasi Excel tertunda. Tutup file Excel jika sedang terbuka:', error.message);
-}), 5000);
+if (!IS_VERCEL) {
+  queueExcelRefresh().catch((error) => console.error('Gagal membuat file Excel awal:', error));
+  setInterval(() => queueExcelRefresh().catch((error) => {
+    console.error('Sinkronisasi Excel tertunda. Tutup file Excel jika sedang terbuka:', error.message);
+  }), 5000);
+}
+
 const sslKeyPath = path.join(__dirname, 'ssl', 'key.pem');
 const sslCertPath = path.join(__dirname, 'ssl', 'cert.pem');
 
