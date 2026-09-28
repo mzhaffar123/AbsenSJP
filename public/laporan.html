@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AbsenSJP · Laporan &amp; Cetak PDF</title>
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0f7c72" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="AbsenSJP" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/app.js"></script>
+</head>
+
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/">
+        <img src="/logosjp.jpeg" alt="Logo" class="brand-logo-img" width="42" height="42" />AbsenSJP
+      </a>
+      <nav class="nav">
+        <a data-page="kiosk" href="/">Absen</a>
+        <a data-page="register" href="/register.html">Karyawan</a>
+        <a data-page="jadwal" href="/jadwal.html">Jadwal</a>
+        <a data-page="dashboard" href="/dashboard.html">Rekap</a>
+        <a data-page="laporan" href="/laporan.html" class="active">Laporan</a>
+        <a data-page="settings" href="/settings.html">Pengaturan</a>
+      </nav>
+    </header>
+
+    <section class="page-head no-print">
+      <div>
+        <div class="eyebrow">Rekapitulasi berkala &amp; dokumen fisik</div>
+        <h1>Laporan &amp; cetak PDF.</h1>
+        <p>Pilih periode rekap untuk mencetak laporan kehadiran resmi atau mengekspornya ke format Excel / PDF.</p>
+      </div>
+    </section>
+
+    <!-- TOOLBAR & FILTER PERIODE -->
+    <section class="card no-print" style="margin-bottom:24px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        <button type="button" class="btn btn-secondary preset-btn active" data-preset="thisMonth">Bulan Ini</button>
+        <button type="button" class="btn btn-secondary preset-btn" data-preset="lastMonth">Bulan Lalu</button>
+        <button type="button" class="btn btn-secondary preset-btn" data-preset="last7">7 Hari Terakhir</button>
+        <button type="button" class="btn btn-secondary preset-btn" data-preset="today">Hari Ini</button>
+      </div>
+
+      <form id="laporanFilterForm" style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;">
+        <div class="field" style="flex:1;min-width:140px;">
+          <label for="lapStartDate">Dari Tanggal</label>
+          <input id="lapStartDate" type="date" required />
+        </div>
+        <div class="field" style="flex:1;min-width:140px;">
+          <label for="lapEndDate">Sampai Tanggal</label>
+          <input id="lapEndDate" type="date" required />
+        </div>
+        <div class="field" style="flex:1;min-width:140px;">
+          <label for="lapShiftFilter">Filter Shift</label>
+          <select id="lapShiftFilter">
+            <option value="ALL">Semua Shift</option>
+            <option value="Shift 1">Shift 1</option>
+            <option value="Shift 2">Shift 2</option>
+            <option value="Shift 3">Shift 3</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="submit" class="btn btn-secondary">🔍 Tampilkan</button>
+          <button type="button" id="btnExportExcelPeriod" class="btn btn-secondary">📥 Unduh Excel</button>
+          <button type="button" id="btnPrintPdf" class="btn btn-primary">🖨️ Cetak / PDF</button>
+        </div>
+      </form>
+      <div id="laporanStatus" class="status" style="margin-top:10px;"></div>
+    </section>
+
+    <!-- LEMBAR DOKUMEN CETAK LAPORAN -->
+    <div id="reportLoading" class="card" style="text-align:center;padding:40px;color:var(--muted);">
+      Memuat data laporan...
+    </div>
+
+    <section id="reportContainer" class="report-sheet" style="display:none;">
+      <!-- KOP RESMI -->
+      <div class="report-kop">
+        <div class="report-kop-brand">
+          <div class="report-kop-logo">
+            <img src="/logosjp.jpeg" alt="Logo" width="48" height="48" style="object-fit:cover;border-radius:10px;" />
+          </div>
+          <div class="report-kop-title">
+            <h2>SISTEM ABSENSI WAJAH</h2>
+            <p>Laporan Rekapitulasi Kehadiran &amp; Kedisiplinan Karyawan</p>
+          </div>
+        </div>
+        <div class="report-kop-meta">
+          <div>Dokumen: <strong>REKAP-ABSENSI</strong></div>
+          <div>Dicetak pada: <span id="docPrintDate">—</span></div>
+          <div>Sistem: AbsenSJP AI</div>
+        </div>
+      </div>
+
+      <!-- JUDUL LAPORAN -->
+      <div class="report-title-banner">
+        <h3>REKAPITULASI KEHADIRAN KARYAWAN</h3>
+        <span>Periode: <strong id="repPeriodRange">—</strong> (<span id="repTotalDays">0</span> Hari Kalender)</span>
+      </div>
+
+      <!-- KPI RINGKASAN -->
+      <div class="report-kpi-grid">
+        <div class="report-kpi-card">
+          <strong id="repKpiTotalEmp">0</strong>
+          <span>Total Karyawan</span>
+        </div>
+        <div class="report-kpi-card">
+          <strong id="repKpiAvgRate" style="color:var(--teal-dark);">0%</strong>
+          <span>Tingkat Kehadiran</span>
+        </div>
+        <div class="report-kpi-card">
+          <strong id="repKpiTotalLate" style="color:#b37418;">0</strong>
+          <span>Total Terlambat</span>
+        </div>
+        <div class="report-kpi-card">
+          <strong id="repKpiTotalAbsent" style="color:var(--coral);">0</strong>
+          <span>Total Alpha</span>
+        </div>
+      </div>
+
+      <!-- TABEL REKAPITULASI UTAMA -->
+      <div class="report-table-wrap">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th style="width:35px;">No</th>
+              <th style="width:110px;">NIP / ID</th>
+              <th>Nama Karyawan</th>
+              <th style="width:85px;">Shift</th>
+              <th style="width:75px;">Jadwal (Hari)</th>
+              <th style="width:75px;">Hadir (Tepat)</th>
+              <th style="width:75px;">Terlambat</th>
+              <th style="width:75px;">Alpha</th>
+              <th style="width:85px;">% Kehadiran</th>
+            </tr>
+          </thead>
+          <tbody id="repTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- TANDA TANGAN / PENGESAHAN -->
+      <div class="report-signatures">
+        <div class="report-sign-box">
+          <div>Dibuat oleh,</div>
+          <div style="font-weight:600;color:var(--muted);">Administrator Sistem</div>
+          <div class="report-sign-space"></div>
+          <div class="report-sign-name">Admin Absensi</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Petugas Pengelola</div>
+        </div>
+        <div class="report-sign-box">
+          <div>Mengetahui &amp; Menyetujui,</div>
+          <div style="font-weight:600;color:var(--muted);">Pimpinan / HRD Manager</div>
+          <div class="report-sign-space"></div>
+          <div class="report-sign-name">( ............................................ )</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Kepala Bagian SDM</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</body>
+
+</html>

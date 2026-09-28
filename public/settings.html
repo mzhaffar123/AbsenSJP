@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AbsenSJP · Pengaturan</title>
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0f7c72" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="AbsenSJP" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/app.js"></script>
+</head>
+
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/">
+        <img src="/logosjp.jpeg" alt="Logo" class="brand-logo-img" width="42" height="42" />AbsenSJP
+      </a>
+      <nav class="nav">
+        <a data-page="kiosk" href="/">Absen</a>
+        <a data-page="register" href="/register.html">Karyawan</a>
+        <a data-page="jadwal" href="/jadwal.html">Jadwal</a>
+        <a data-page="dashboard" href="/dashboard.html">Rekap</a>
+        <a data-page="laporan" href="/laporan.html">Laporan</a>
+        <a class="active" data-page="settings" href="/settings.html">Pengaturan</a>
+      </nav>
+    </header>
+    <section class="page-head">
+      <div>
+        <div class="eyebrow">Panel Admin</div>
+        <h1>Pengaturan Jam Kerja.</h1>
+        <p>Sesuaikan jam mulai dan selesai setiap shift serta toleransi keterlambatan kantor.</p>
+      </div>
+    </section>
+
+    <form id="settingsForm" class="settings-form">
+      <div class="grid">
+        <section class="card">
+          <div class="eyebrow">Shift Kerja</div>
+          <h3>Jadwal Jam Masuk & Pulang</h3>
+          <p style="color: var(--muted); margin: 6px 0 18px; font-size: 13px;">
+            Atur jam mulai dan jam selesai untuk setiap shift kerja karyawan.
+          </p>
+
+          <div class="shift-setting-block">
+            <strong>Shift 1 (Pagi-Siang)</strong>
+            <div class="shift-time-row">
+              <div class="field">
+                <label for="shift1_start">Mulai</label>
+                <input id="shift1_start" type="time" required value="06:00" />
+              </div>
+              <div class="field">
+                <label for="shift1_end">Selesai</label>
+                <input id="shift1_end" type="time" required value="14:00" />
+              </div>
+            </div>
+          </div>
+
+          <div class="shift-setting-block" style="margin-top: 14px;">
+            <strong>Shift 2 (Siang-Sore)</strong>
+            <div class="shift-time-row">
+              <div class="field">
+                <label for="shift2_start">Mulai</label>
+                <input id="shift2_start" type="time" required value="14:00" />
+              </div>
+              <div class="field">
+                <label for="shift2_end">Selesai</label>
+                <input id="shift2_end" type="time" required value="22:00" />
+              </div>
+            </div>
+          </div>
+
+          <div class="shift-setting-block" style="margin-top: 14px;">
+            <strong>Shift 3 (Malam-Pagi)</strong>
+            <div class="shift-time-row">
+              <div class="field">
+                <label for="shift3_start">Mulai</label>
+                <input id="shift3_start" type="time" required value="22:00" />
+              </div>
+              <div class="field">
+                <label for="shift3_end">Selesai (Keesokan hari)</label>
+                <input id="shift3_end" type="time" required value="06:00" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside>
+          <section class="card">
+            <div class="eyebrow">Kebijakan Kehadiran</div>
+            <h3>Toleransi Keterlambatan</h3>
+            <p style="color: var(--muted); margin: 6px 0 16px; font-size: 13px;">
+              Batas maksimal menit toleransi setelah jam shift dimulai sebelum ditandai "Terlambat".
+            </p>
+            <div class="field">
+              <label for="late_tolerance">Toleransi Terlambat (Menit)</label>
+              <input id="late_tolerance" type="number" min="0" max="180" step="1" required value="30" />
+            </div>
+          </section>
+
+          <section class="card" style="margin-top: 20px;">
+            <div class="eyebrow">Keamanan Admin</div>
+            <h3>PIN Administrator</h3>
+            <p style="color: var(--muted); margin: 6px 0 16px; font-size: 13px;">
+              Masukkan PIN Admin untuk menyimpan perubahan (PIN bawaan: <strong>1234</strong>).
+            </p>
+            <div class="field">
+              <label for="admin_pin">PIN Saat Ini</label>
+              <input id="admin_pin" type="password" required placeholder="Masukkan PIN saat ini..." />
+            </div>
+            <div class="field" style="margin-top: 10px;">
+              <label for="new_admin_pin">Ganti PIN Baru (Opsional)</label>
+              <input id="new_admin_pin" type="password" placeholder="Kosongkan jika tidak diganti" />
+            </div>
+
+            <div style="margin-top: 20px;">
+              <button class="btn btn-primary" type="submit" style="width: 100%;">
+                Simpan Pengaturan
+              </button>
+            </div>
+            <div id="settingsStatus" class="status" style="margin-top: 12px; text-align: center;"></div>
+          </section>
+        </aside>
+      </div>
+    </form>
+  </main>
+</body>
+
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>AbsenSJP · Kiosk</title>
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0f7c72" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="AbsenSJP" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"
+    ></script>
+    <script src="/app.js"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="/">
+          <img src="/logosjp.jpeg" alt="Logo" class="brand-logo-img" width="42" height="42" />AbsenSJP
+        </a>
+        <nav class="nav">
+          <a class="active" data-page="kiosk" href="/">Absen</a>
+          <a data-page="register" href="/register.html">Karyawan</a>
+          <a data-page="jadwal" href="/jadwal.html">Jadwal</a>
+          <a data-page="dashboard" href="/dashboard.html">Rekap</a>
+          <a data-page="laporan" href="/laporan.html">Laporan</a>
+          <a data-page="settings" href="/settings.html">Pengaturan</a>
+        </nav>
+      </header>
+      <section class="page-head">
+        <div>
+          <div class="eyebrow">Pintu masuk · kamera aktif</div>
+          <h1>Absen dengan wajah.</h1>
+          <p>
+            Hadapkan wajah ke kamera. Sistem akan mencatat masuk lalu pulang
+            secara otomatis.
+          </p>
+        </div>
+        <div class="field">
+          <label for="threshold">Threshold kecocokan</label
+          ><input
+            id="threshold"
+            type="number"
+            min="0.2"
+            max="1.2"
+            step="0.05"
+            value="0.5"
+          />
+        </div>
+      </section>
+      <div class="grid">
+        <section class="card camera-card">
+          <div class="camera-wrap">
+            <video id="kioskVideo" muted playsinline></video
+            ><canvas id="kioskCanvas"></canvas>
+            <div class="camera-tip">Deteksi otomatis setiap beberapa detik</div>
+          </div>
+          <div id="kioskStatus" class="status" style="margin: 14px 5px 0"></div>
+        </section>
+        <aside>
+          <div id="kioskFeedback" class="feedback">
+            <strong>Menunggu wajah</strong>
+            <div>Pastikan pencahayaan cukup dan wajah terlihat jelas.</div>
+          </div>
+
+          <!-- KARTU PENGINGAT STAF PIKET HARI INI -->
+          <div class="card card-piket" style="margin-top: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div class="eyebrow" style="color: #b35a00; margin-bottom: 0;">🧹 Petugas Piket</div>
+              <span id="piketDayBadge" class="badge" style="background: #fff3cd; color: #856404; font-size: 11px;">Hari Ini</span>
+            </div>
+            <div id="piketStaffList" style="display: grid; gap: 10px; margin-top: 4px;">
+              <div style="color: var(--muted); font-size: 13px;">Memuat jadwal piket...</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top: 16px">
+            <div class="eyebrow">Urutan hari ini</div>
+            <h3>Masuk → keluar</h3>
+            <p style="color: var(--muted); margin-top: 8px; line-height: 1.6">
+              Deteksi pertama untuk seseorang menjadi jam masuk. Deteksi
+              berikutnya menjadi jam keluar. Setelah lengkap, sistem tidak
+              menambah absen lagi.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </body>
+</html>

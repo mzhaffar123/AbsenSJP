@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AbsenSJP · Jadwal Kerja</title>
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0f7c72" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="AbsenSJP" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/app.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/">
+        <img src="/logosjp.jpeg" alt="Logo" class="brand-logo-img" width="42" height="42" />AbsenSJP
+      </a>
+      <nav class="nav">
+        <a data-page="kiosk" href="/">Absen</a>
+        <a data-page="register" href="/register.html">Karyawan</a>
+        <a data-page="jadwal" href="/jadwal.html" class="active">Jadwal</a>
+        <a data-page="dashboard" href="/dashboard.html">Rekap</a>
+        <a data-page="laporan" href="/laporan.html">Laporan</a>
+        <a data-page="settings" href="/settings.html">Pengaturan</a>
+      </nav>
+    </header>
+
+    <section class="page-head">
+      <div>
+        <div class="eyebrow">Manajemen shift &amp; hari kerja</div>
+        <h1>Jadwal kerja staff.</h1>
+        <p>Atur jadwal kerja mingguan, shift, dan giliran piket untuk setiap karyawan.</p>
+      </div>
+    </section>
+
+    <!-- RINGKASAN CEPAT -->
+    <div id="jadwalSummary" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;margin-bottom:24px;">
+      <div class="stat stat-primary" style="padding:16px 20px;">
+        <strong id="statTotalKaryawan" style="font-size:28px;">—</strong>
+        <span style="font-size:12px;font-weight:700;letter-spacing:0.04em;">👥 TOTAL KARYAWAN</span>
+      </div>
+      <div class="stat" style="padding:16px 20px;border-left:4px solid var(--teal);">
+        <strong id="statHariIniKerja" style="font-size:28px;color:var(--teal-dark);">—</strong>
+        <span style="font-size:12px;font-weight:700;letter-spacing:0.04em;">🟢 KERJA HARI INI</span>
+      </div>
+      <div class="stat stat-warning" style="padding:16px 20px;border-left:4px solid #d97706;">
+        <strong id="statHariIniPiket" style="font-size:28px;color:#b45309;">—</strong>
+        <span style="font-size:12px;font-weight:700;letter-spacing:0.04em;">🧹 PIKET HARI INI</span>
+      </div>
+      <div class="stat stat-off" style="padding:16px 20px;border-left:4px solid #64748b;">
+        <strong id="statHariIniLibur" style="font-size:28px;color:#475569;">—</strong>
+        <span style="font-size:12px;font-weight:700;letter-spacing:0.04em;">⚪ LIBUR HARI INI</span>
+      </div>
+    </div>
+
+    <!-- TOOLBAR & LEGENDA -->
+    <div class="card" style="margin-bottom:20px;padding:16px 20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+        <!-- PENCARIAN -->
+        <div class="field" style="flex:1;min-width:240px;margin-bottom:0;">
+          <input id="jadwalSearchInput" type="search" placeholder="🔍 Cari nama karyawan atau NIP..." style="height:40px;padding:0 14px;border-radius:9px;" />
+        </div>
+
+        <!-- LEGENDA BADGE -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;">
+          <span style="font-weight:700;color:var(--muted);margin-right:2px;">Keterangan:</span>
+          <span class="legend-badge shift-1">🟢 Shift 1 (06-14)</span>
+          <span class="legend-badge shift-2">🔵 Shift 2 (14-22)</span>
+          <span class="legend-badge shift-3">🟠 Shift 3 (22-06)</span>
+          <span class="legend-badge piket-badge">🧹 Piket</span>
+          <span class="legend-badge off-badge">⚪ Libur</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="scheduleStatus" class="status" style="margin-bottom:16px;font-size:14px;"></div>
+
+    <!-- DAFTAR KARYAWAN + GRID JADWAL -->
+    <section class="card" style="padding:0;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);">
+      <div id="scheduleLoading" style="padding:40px;text-align:center;color:var(--muted);font-weight:600;">Memuat jadwal karyawan...</div>
+      <div id="scheduleGrid" style="display:none;overflow-x:auto;">
+        <table class="table schedule-table" style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr id="jadwalHeader">
+              <th style="min-width:240px;text-align:left;padding:14px 18px;">Karyawan</th>
+              <th class="day-col" data-day="Senin">Senin</th>
+              <th class="day-col" data-day="Selasa">Selasa</th>
+              <th class="day-col" data-day="Rabu">Rabu</th>
+              <th class="day-col" data-day="Kamis">Kamis</th>
+              <th class="day-col" data-day="Jumat">Jumat</th>
+              <th class="day-col" data-day="Sabtu">Sabtu</th>
+              <th class="day-col" data-day="Minggu">Minggu</th>
+              <th style="min-width:90px;text-align:center;padding:14px 16px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="scheduleRows"></tbody>
+        </table>
+      </div>
+      <div id="scheduleEmpty" style="display:none;padding:48px;text-align:center;color:var(--muted);">
+        Belum ada karyawan terdaftar. <a href="/register.html" style="color:var(--teal);font-weight:700;">Daftarkan sekarang →</a>
+      </div>
+    </section>
+
+    <!-- MODAL EDIT JADWAL -->
+    <div id="editModal" class="modal-overlay" style="display:none;">
+      <div class="modal-box">
+        <div class="modal-head">
+          <div>
+            <div class="eyebrow">Edit jadwal</div>
+            <h2 id="modalEmployeeName">—</h2>
+            <div id="modalEmployeeNip" style="color:var(--muted);font-size:13px;margin-top:2px;"></div>
+          </div>
+          <button type="button" class="modal-close" id="modalClose" aria-label="Tutup">✕</button>
+        </div>
+
+        <div id="modalStatus" class="status" style="min-height:18px;margin-bottom:8px;font-size:13px;"></div>
+
+        <div class="day-editor-grid" id="dayEditorGrid">
+          <!-- Diisi oleh JS -->
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap;">
+          <button type="button" class="btn btn-secondary" id="modalCancelBtn">Batal</button>
+          <button type="button" class="btn btn-primary" id="modalSaveBtn">💾 Simpan jadwal</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AbsenSJP · Rekap</title>
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0f7c72" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="AbsenSJP" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/app.js"></script>
+</head>
+
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/">
+        <img src="/logosjp.jpeg" alt="Logo" class="brand-logo-img" width="42" height="42" />AbsenSJP
+      </a>
+      <nav class="nav">
+        <a data-page="kiosk" href="/">Absen</a>
+        <a data-page="register" href="/register.html">Karyawan</a>
+        <a data-page="jadwal" href="/jadwal.html">Jadwal</a>
+        <a class="active" data-page="dashboard" href="/dashboard.html">Rekap</a>
+        <a data-page="laporan" href="/laporan.html">Laporan</a>
+        <a data-page="settings" href="/settings.html">Pengaturan</a>
+      </nav>
+    </header>
+    <section class="page-head">
+      <div>
+        <div class="eyebrow">Laporan kehadiran &amp; jadwal shift</div>
+        <h1>Rekap absensi.</h1>
+        <p id="subheadDate">Pantau absensi karyawan sesuai jadwal kerja shift masing-masing.</p>
+      </div>
+      <div id="dayBadgeContainer" style="display:flex;gap:10px;align-items:center;">
+        <a href="/laporan.html" class="btn btn-secondary"
+          style="font-size:13px;padding:8px 14px;text-decoration:none;">🖨️ Cetak PDF / Rekap Bulanan →</a>
+        <span id="currentDayBadge" class="badge ok" style="font-size:13px;padding:6px 14px;border-radius:10px;">—</span>
+      </div>
+    </section>
+
+    <div class="stat-row stat-grid-6">
+      <div class="stat">
+        <strong id="statTotalEmployees">0</strong>
+        <span>Total Karyawan</span>
+      </div>
+      <div class="stat stat-primary">
+        <strong id="statScheduledCount">0</strong>
+        <span>Jadwal Masuk</span>
+      </div>
+      <div class="stat">
+        <strong id="statPresentCount">0</strong>
+        <span>Sudah Hadir</span>
+      </div>
+      <div class="stat stat-alert">
+        <strong id="statAbsentCount">0</strong>
+        <span>Belum Hadir (Alpha)</span>
+      </div>
+      <div class="stat stat-off">
+        <strong id="statOffCount">0</strong>
+        <span>Libur / Off</span>
+      </div>
+      <div class="stat stat-warning">
+        <strong id="statLateCount">0</strong>
+        <span>Terlambat</span>
+      </div>
+    </div>
+
+    <section class="card">
+      <div class="dashboard-toolbar">
+        <form id="filterForm" class="filters">
+          <div class="field">
+            <label for="dateFilter">Pilih tanggal</label>
+            <input id="dateFilter" type="date" required />
+          </div>
+          <button class="btn btn-secondary" type="submit">
+            Tampilkan rekap
+          </button>
+        </form>
+        <div class="field search-field">
+          <label for="searchInput">Cari karyawan</label>
+          <input id="searchInput" type="search" placeholder="Ketik nama atau NIP..." />
+        </div>
+      </div>
+
+      <div class="tab-group">
+        <button type="button" class="tab-btn active" id="tabPresentBtn">
+          Sudah Hadir <span id="presentTabBadge" class="tab-badge">0</span>
+        </button>
+        <button type="button" class="tab-btn" id="tabAbsentBtn">
+          Belum Hadir (Harus Masuk) <span id="absentTabBadge" class="tab-badge alert">0</span>
+        </button>
+        <button type="button" class="tab-btn" id="tabOffBtn">
+          Libur / Off <span id="offTabBadge" class="tab-badge off">0</span>
+        </button>
+      </div>
+
+      <!-- TAB 1: SUDAH HADIR -->
+      <div id="presentTableWrap" class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Foto Masuk</th>
+              <th>Foto Keluar</th>
+              <th>Nama</th>
+              <th>NIP / ID</th>
+              <th>Jadwal Shift</th>
+              <th>Shift Masuk</th>
+              <th>Jam Masuk</th>
+              <th>Jam Keluar</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="recordRows"></tbody>
+        </table>
+      </div>
+
+      <!-- TAB 2: BELUM HADIR (ALPHA) -->
+      <div id="absentTableWrap" class="table-wrap" style="display: none;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Foto</th>
+              <th>Nama</th>
+              <th>NIP / ID</th>
+              <th>Jadwal Shift</th>
+              <th>Jam Kerja Shift</th>
+              <th>Status Kehadiran</th>
+            </tr>
+          </thead>
+          <tbody id="absentRows"></tbody>
+        </table>
+      </div>
+
+      <!-- TAB 3: LIBUR / OFF -->
+      <div id="offTableWrap" class="table-wrap" style="display: none;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Foto</th>
+              <th>Nama</th>
+              <th>NIP / ID</th>
+              <th>Status Jadwal</th>
+              <th>Keterangan</th>
+            </tr>
+          </thead>
+          <tbody id="offRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+
+</html>

@@ -1,0 +1,43 @@
+{
+  "name": "AbsenSJP — Absensi Wajah",
+  "short_name": "AbsenSJP",
+  "description": "Sistem absensi karyawan berbasis pengenalan wajah",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f8f5",
+  "theme_color": "#0f7c72",
+  "lang": "id",
+  "categories": ["productivity", "business"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Absen Sekarang",
+      "short_name": "Absen",
+      "description": "Buka halaman absensi kamera",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Rekap Absensi",
+      "short_name": "Rekap",
+      "description": "Lihat rekap kehadiran karyawan",
+      "url": "/dashboard.html",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
