@@ -1176,3 +1176,6 @@ if (fs.existsSync(sslKeyPath) && fs.existsSync(sslCertPath)) {
   app.listen(PORT, () => console.log(`AbsensiMuka berjalan di http://localhost:${PORT}`));
 }
 
+module.exports = app;
+
+
