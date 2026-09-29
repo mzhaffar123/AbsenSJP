@@ -35,20 +35,18 @@
       </header>
       <section class="page-head">
         <div>
-          <div class="eyebrow">Data karyawan</div>
-          <h1>Daftarkan wajah.</h1>
+          <div class="eyebrow">Data Karyawan</div>
+          <h1>Pendaftaran Wajah Karyawan</h1>
           <p>
-            Simpan satu wajah per NIP dengan posisi wajah lurus dan pencahayaan
-            merata.
+            Daftarkan sampel wajah per NIP dengan posisi wajah tegak lurus dan pencahayaan yang cukup.
           </p>
         </div>
       </section>
       <div class="grid">
         <section class="card camera-card">
           <div class="camera-wrap">
-            <video id="registerVideo" muted playsinline></video
-            ><canvas id="registerCanvas"></canvas>
-            <div class="camera-tip">Kotak hijau menandai wajah terdeteksi</div>
+            <video id="registerVideo" muted playsinline></video><canvas id="registerCanvas"></canvas>
+            <div class="camera-tip">Kotak hijau menandakan wajah terdeteksi</div>
           </div>
           <div
             id="registerStatus"
@@ -59,15 +57,13 @@
         <section class="card">
           <form id="registerForm" class="controls">
             <div class="field">
-              <label for="nama">Nama lengkap</label
-              ><input id="nama" required placeholder="Contoh: Siti Rahma" />
+              <label for="nama">Nama Lengkap</label><input id="nama" required placeholder="Contoh: Siti Rahma" />
             </div>
             <div class="field">
-              <label for="nip">NIP / ID karyawan</label
-              ><input id="nip" required placeholder="Contoh: EMP-001" />
+              <label for="nip">NIP / ID Karyawan</label><input id="nip" required placeholder="Contoh: EMP-001" />
             </div>
             <button class="btn btn-primary" type="submit">
-              Ambil Wajah & Simpan
+              📸 Pindai Wajah &amp; Simpan
             </button>
           </form>
         </section>
@@ -75,8 +71,8 @@
       <section class="card" style="margin-top: 22px">
         <div class="page-head" style="margin-bottom: 12px">
           <div>
-            <div class="eyebrow">Direktori</div>
-            <h2>Karyawan terdaftar</h2>
+            <div class="eyebrow">Direktori Data</div>
+            <h2>Daftar Karyawan Terdaftar</h2>
           </div>
         </div>
         <div class="table-wrap">
@@ -84,7 +80,7 @@
             <thead>
               <tr>
                 <th>Foto</th>
-                <th>Nama</th>
+                <th>Nama Lengkap</th>
                 <th>NIP / ID</th>
                 <th data-shift-heading>Jadwal Shift</th>
                 <th>Aksi</th>

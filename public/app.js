@@ -453,16 +453,16 @@ async function initKiosk() {
     }
 
     const piketBannerHtml = data.recognized && data.isPiket
-      ? '<div style="margin-top:8px;background:#fff3cd;color:#856404;font-weight:700;padding:5px 9px;border-radius:6px;font-size:12px;display:flex;align-items:center;gap:6px;">🧹 PENGINGAT: Anda bertugas PIKET hari ini!</div>'
+      ? '<div style="margin-top:8px;background:#fff3cd;color:#856404;font-weight:700;padding:5px 9px;border-radius:6px;font-size:12px;display:flex;align-items:center;gap:6px;">🧹 PENGINGAT: Anda bertugas piket hari ini!</div>'
       : '';
 
     feedback.innerHTML = data.recognized
-      ? `<strong>${escapeHtml(data.nama)}</strong><div>${data.outsideShift || data.tooEarly || data.status === 'belum masuk' || data.status === 'sudah masuk' ? escapeHtml(data.error) : data.status === 'selesai' ? 'Absensi hari ini sudah lengkap' : data.status === 'masuk' ? 'ABSEN MASUK berhasil' : 'ABSEN KELUAR berhasil'}${data.terlambat ? ' · terlambat' : ''}</div><small>${data.jam || ''} · ${escapeHtml(data.nip)} · ${escapeHtml(data.shift || '')}${data.excelUpdated === false ? ' · Tutup file Excel agar dapat diperbarui' : ''}</small>${piketBannerHtml}`
-      : `<strong>Belum dikenali</strong><div>${data.error || 'Coba posisikan wajah lebih jelas.'}</div>`;
+      ? `<strong>${escapeHtml(data.nama)}</strong><div>${data.outsideShift || data.tooEarly || data.status === 'belum masuk' || data.status === 'sudah masuk' ? escapeHtml(data.error) : data.status === 'selesai' ? 'Absensi hari ini sudah lengkap' : data.status === 'masuk' ? 'Absen Masuk Berhasil' : 'Absen Pulang Berhasil'}${data.terlambat ? ' · Terlambat' : ''}</div><small>${data.jam || ''} · ${escapeHtml(data.nip)} · ${escapeHtml(data.shift || '')}${data.excelUpdated === false ? ' · Tutup file Excel agar dapat diperbarui' : ''}</small>${piketBannerHtml}`
+      : `<strong>Wajah Belum Dikenali</strong><div>${data.error || 'Posisikan wajah tepat di depan kamera.'}</div>`;
 
     if (data.recognized && !data.outsideShift && !data.tooEarly && ['masuk', 'keluar', 'selesai'].includes(data.status)) {
       waitingForFaceToLeave = true;
-      showStatus(status, 'Absensi tercatat. Silakan menjauh dari kamera sebelum absensi berikutnya.', 'ok');
+      showStatus(status, 'Absensi tercatat. Silakan menjauh sejenak dari kamera sebelum absensi berikutnya.', 'ok');
     }
   };
   setInterval(() => scan().catch((error) => showStatus(status, error.message, 'error')), 700);
@@ -475,8 +475,8 @@ async function initDashboard() {
 
   const exportButton = document.createElement('button');
   exportButton.type = 'button';
-  exportButton.className = 'btn btn-primary';
-  exportButton.textContent = 'Export Excel';
+  exportButton.className = 'btn btn-secondary';
+  exportButton.innerHTML = '📥 Unduh Excel';
   exportButton.addEventListener('click', () => {
     window.location.href = `/api/attendance/export.xlsx?tanggal=${date.value}`;
   });
@@ -536,6 +536,7 @@ async function initDashboard() {
             const isDifferentShift = row.jadwal_shift && row.jadwal_shift !== 'Libur (Off)' && row.jadwal_shift !== 'Otomatis' && row.shift !== row.jadwal_shift;
             const imgMasuk = row.foto_masuk || row.foto || '';
             const imgKeluar = row.foto_keluar || '';
+            const statusLabel = row.status === 'lengkap' ? 'Selesai' : 'Belum Pulang';
             return `
             <tr>
               <td>
@@ -552,11 +553,11 @@ async function initDashboard() {
               <td><span class="badge ${row.jadwal_shift === 'Libur (Off)' ? 'off' : 'shift-badge'}">${escapeHtml(row.jadwal_shift || '-')}</span></td>
               <td>
                 <span class="badge ${isDifferentShift ? 'mismatch' : 'ok'}">${escapeHtml(row.shift || '-')}</span>
-                ${isDifferentShift ? '<small style="color:#b37418;display:block;font-size:10px;">(beda jadwal)</small>' : ''}
+                ${isDifferentShift ? '<small style="color:#b37418;display:block;font-size:10px;">(Beda Jadwal)</small>' : ''}
               </td>
               <td>${row.jam_masuk || '-'}</td>
               <td>${row.jam_keluar || '-'}</td>
-              <td><span class="badge ${row.status === 'lengkap' ? 'ok' : 'pending'}">${row.status}${row.terlambat ? ' · terlambat' : ''}</span></td>
+              <td><span class="badge ${row.status === 'lengkap' ? 'ok' : 'pending'}">${statusLabel}${row.terlambat ? ' · Terlambat' : ''}</span></td>
               <td style="text-align: center;">
                 <div class="action-cell">
                   <button type="button" class="btn btn-sm btn-outline btn-edit-att" data-id="${row.id}" data-nama="${escapeHtml(row.nama)}" data-nip="${escapeHtml(row.nip)}" data-tanggal="${row.tanggal}" data-shift="${row.shift}" data-masuk="${row.jam_masuk || ''}" data-keluar="${row.jam_keluar || ''}" title="Koreksi Jam/Shift">✏️ Edit</button>
@@ -584,7 +585,7 @@ async function initDashboard() {
               <td>${escapeHtml(emp.nip)}</td>
               <td><span class="badge shift-badge">${escapeHtml(emp.jadwal_shift || 'Shift 1')}</span></td>
               <td><span style="font-size:13px;color:var(--muted);">${currentShiftTimes[emp.jadwal_shift] || '06:00 - 14:00'}</span></td>
-              <td><span class="badge fail">Alpha / Belum Masuk</span></td>
+              <td><span class="badge fail">Belum Hadir (Alpha)</span></td>
               <td style="text-align: center;">
                 <button type="button" class="btn btn-sm btn-primary btn-quick-att" data-empid="${emp.id}" data-shift="${emp.jadwal_shift === 'Libur (Off)' ? 'Shift 1' : (emp.jadwal_shift || 'Shift 1')}" title="Input Absen Manual">➕ Hadirkan</button>
               </td>

@@ -33,9 +33,9 @@
     </header>
     <section class="page-head">
       <div>
-        <div class="eyebrow">Laporan kehadiran &amp; jadwal shift</div>
-        <h1>Rekap absensi.</h1>
-        <p id="subheadDate">Pantau absensi karyawan sesuai jadwal kerja shift masing-masing.</p>
+        <div class="eyebrow">Laporan Kehadiran &amp; Jadwal Shift</div>
+        <h1>Rekapitulasi Kehadiran</h1>
+        <p id="subheadDate">Pantau data kehadiran karyawan secara langsung sesuai jadwal shift masing-masing.</p>
       </div>
       <div id="dayBadgeContainer" style="display:flex;gap:10px;align-items:center;">
         <a href="/laporan.html" class="btn btn-secondary"
@@ -63,7 +63,7 @@
       </div>
       <div class="stat stat-off">
         <strong id="statOffCount">0</strong>
-        <span>Libur / Off</span>
+        <span>Libur (Off)</span>
       </div>
       <div class="stat stat-warning">
         <strong id="statLateCount">0</strong>
@@ -75,16 +75,16 @@
       <div class="dashboard-toolbar">
         <form id="filterForm" class="filters">
           <div class="field">
-            <label for="dateFilter">Pilih tanggal</label>
+            <label for="dateFilter">Pilih Tanggal</label>
             <input id="dateFilter" type="date" required />
           </div>
           <button class="btn btn-secondary" type="submit">
-            Tampilkan rekap
+            Tampilkan Rekap
           </button>
         </form>
         <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
           <div class="field search-field">
-            <label for="searchInput">Cari karyawan</label>
+            <label for="searchInput">Cari Karyawan</label>
             <input id="searchInput" type="search" placeholder="Ketik nama atau NIP..." />
           </div>
           <button id="btnOpenManualModal" type="button" class="btn btn-primary" style="padding: 10px 16px; font-size: 13px;">
@@ -98,10 +98,10 @@
           Sudah Hadir <span id="presentTabBadge" class="tab-badge">0</span>
         </button>
         <button type="button" class="tab-btn" id="tabAbsentBtn">
-          Belum Hadir (Harus Masuk) <span id="absentTabBadge" class="tab-badge alert">0</span>
+          Belum Hadir (Jadwal Masuk) <span id="absentTabBadge" class="tab-badge alert">0</span>
         </button>
         <button type="button" class="tab-btn" id="tabOffBtn">
-          Libur / Off <span id="offTabBadge" class="tab-badge off">0</span>
+          Libur (Off) <span id="offTabBadge" class="tab-badge off">0</span>
         </button>
       </div>
 
@@ -112,10 +112,10 @@
             <tr>
               <th>Foto Masuk</th>
               <th>Foto Keluar</th>
-              <th>Nama</th>
+              <th>Nama Lengkap</th>
               <th>NIP / ID</th>
               <th>Jadwal Shift</th>
-              <th>Shift Masuk</th>
+              <th>Shift Terabsen</th>
               <th>Jam Masuk</th>
               <th>Jam Keluar</th>
               <th>Status</th>
@@ -132,10 +132,10 @@
           <thead>
             <tr>
               <th>Foto</th>
-              <th>Nama</th>
+              <th>Nama Lengkap</th>
               <th>NIP / ID</th>
               <th>Jadwal Shift</th>
-              <th>Jam Kerja Shift</th>
+              <th>Jam Operasional Shift</th>
               <th>Status Kehadiran</th>
               <th style="text-align: center; width: 120px;">Aksi</th>
             </tr>
@@ -150,7 +150,7 @@
           <thead>
             <tr>
               <th>Foto</th>
-              <th>Nama</th>
+              <th>Nama Lengkap</th>
               <th>NIP / ID</th>
               <th>Status Jadwal</th>
               <th>Keterangan</th>
@@ -167,9 +167,9 @@
     <div class="modal-box" style="max-width: 500px;">
       <div class="modal-head">
         <div>
-          <div class="eyebrow">Admin Action</div>
+          <div class="eyebrow">Aksi Administrator</div>
           <h3 style="margin: 0; font-size: 20px;">Input Absensi Manual</h3>
-          <p style="color: var(--muted); font-size: 13px; margin: 4px 0 0;">Tambahkan data absensi untuk karyawan yang lupa absen.</p>
+          <p style="color: var(--muted); font-size: 13px; margin: 4px 0 0;">Tambahkan pencatatan absensi karyawan secara manual.</p>
         </div>
         <button type="button" class="modal-close" id="btnCloseManualModal">✕</button>
       </div>
@@ -184,11 +184,11 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="field">
-            <label for="manualTanggal">Tanggal</label>
+            <label for="manualTanggal">Tanggal Absensi</label>
             <input id="manualTanggal" type="date" required />
           </div>
           <div class="field">
-            <label for="manualShift">Shift</label>
+            <label for="manualShift">Pilihan Shift</label>
             <select id="manualShift" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--line);">
               <option value="Shift 1">Shift 1 (Pagi)</option>
               <option value="Shift 2">Shift 2 (Siang)</option>
@@ -204,13 +204,13 @@
           </div>
           <div class="field">
             <label for="manualJamKeluar">Jam Keluar (Opsional)</label>
-            <input id="manualJamKeluar" type="time" />
+            <input id="manualJamKeluar" type="time" placeholder="Kosongkan jika belum pulang" />
           </div>
         </div>
 
         <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px;">
           <button type="button" class="btn btn-secondary" id="btnCancelManual">Batal</button>
-          <button type="submit" class="btn btn-primary" id="btnSaveManual">Simpan Kehadiran</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveManual">Simpan Absensi</button>
         </div>
         <div id="manualStatus" class="status" style="margin-top: 6px; text-align: center;"></div>
       </form>
@@ -222,9 +222,9 @@
     <div class="modal-box" style="max-width: 500px;">
       <div class="modal-head">
         <div>
-          <div class="eyebrow">Admin Action</div>
-          <h3 style="margin: 0; font-size: 20px;">Koreksi / Edit Absensi</h3>
-          <p style="color: var(--muted); font-size: 13px; margin: 4px 0 0;" id="editModalSub">Ubah data jam masuk atau jam pulang karyawan.</p>
+          <div class="eyebrow">Aksi Administrator</div>
+          <h3 style="margin: 0; font-size: 20px;">Koreksi Jam Absensi</h3>
+          <p style="color: var(--muted); font-size: 13px; margin: 4px 0 0;" id="editModalSub">Koreksi pencatatan jam masuk atau kepulangan karyawan.</p>
         </div>
         <button type="button" class="modal-close" id="btnCloseEditModal">✕</button>
       </div>
@@ -240,7 +240,7 @@
         </div>
 
         <div class="field">
-          <label for="editShift">Shift</label>
+          <label for="editShift">Shift Kerja</label>
           <select id="editShift" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--line);">
             <option value="Shift 1">Shift 1</option>
             <option value="Shift 2">Shift 2</option>
