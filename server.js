@@ -18,8 +18,9 @@ let currentBlobUrl = null; // URL Excel terbaru di Vercel Blob
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
-const AUTH_SECRET = process.env.AUTH_SECRET || crypto.randomBytes(32).toString('hex');
-const TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 hari
+// Gunakan secret tetap yang stabil di semua instance serverless Vercel (bukan randomBytes yang berubah tiap cold start)
+const AUTH_SECRET = process.env.AUTH_SECRET || 'absensjp-secure-permanent-auth-secret-key-2026-v1';
+const TOKEN_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 hari
 
 function createAuthToken() {
   const payload = Date.now().toString(36);
@@ -33,9 +34,11 @@ function verifyAuthToken(token) {
   if (parts.length !== 2) return false;
   const [payload, sig] = parts;
   const expected = crypto.createHmac('sha256', AUTH_SECRET).update(payload).digest('hex');
+  if (sig.length !== expected.length) return false;
   if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return false;
   const issued = parseInt(payload, 36);
-  return (Date.now() - issued) < TOKEN_MAX_AGE_MS;
+  if (isNaN(issued)) return false;
+  return (Date.now() - issued) < TOKEN_MAX_AGE_MS && (Date.now() - issued) >= -60000;
 }
 const IS_VERCEL = !!process.env.VERCEL;
 const DATA_DIR = IS_VERCEL ? '/tmp' : path.join(__dirname, 'data');

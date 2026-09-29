@@ -1398,7 +1398,7 @@ async function initLaporan() {
 function protectAdminPages() {
   const currentPath = window.location.pathname;
   const protectedPages = ['register.html', 'dashboard.html', 'settings.html', 'jadwal.html', 'laporan.html'];
-  const isProtected = protectedPages.some((page) => currentPath.endsWith(page));
+  const isProtected = protectedPages.some((page) => currentPath.endsWith(page) || currentPath.endsWith('/' + page.replace('.html', '')));
 
   if (isProtected) {
     const token = getAuthToken();
@@ -1411,11 +1411,14 @@ function protectAdminPages() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token })
     }).then((res) => {
-      if (!res.ok) {
+      // Hanya lempar ke login jika token benar-benar ditolak (401 Unauthorized)
+      if (res.status === 401) {
         clearAuthToken();
         window.location.replace('/login.html?redirect=' + encodeURIComponent(currentPath));
       }
-    }).catch(() => {});
+    }).catch(() => {
+      // Abaikan gangguan koneksi sementara agar tidak langsung menendang sesi admin
+    });
   }
   return true;
 }
