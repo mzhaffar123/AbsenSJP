@@ -54,28 +54,49 @@ function getIndonesianFemaleVoice(voices) {
     const lang = (v.lang || '').replace('_', '-').toLowerCase();
     return lang.startsWith('id');
   });
-  if (!idVoices.length) return null;
 
-  // 1. Cari suara wanita seperti Microsoft Gadis atau Google Bahasa Indonesia
-  const femaleVoice = idVoices.find((v) => {
+  // Nama-nama voice laki-laki yang harus dihindari
+  const maleNames = ['ardi', 'andika', 'hemant', 'male'];
+
+  const isMale = (name) => maleNames.some((m) => name.includes(m));
+
+  if (idVoices.length) {
+    // 1. Google Bahasa Indonesia (Chrome) — biasanya suara perempuan yang jernih
+    const googleVoice = idVoices.find((v) => (v.name || '').toLowerCase().includes('google'));
+    if (googleVoice) return googleVoice;
+
+    // 2. Cari suara wanita eksplisit: Microsoft Gadis, atau nama mengandung female/wanita
+    const femaleVoice = idVoices.find((v) => {
+      const name = (v.name || '').toLowerCase();
+      return name.includes('gadis') || name.includes('female') || name.includes('wanita') ||
+             name.includes('siti') || name.includes('putri');
+    });
+    if (femaleVoice) return femaleVoice;
+
+    // 3. Suara Natural yang bukan laki-laki
+    const naturalFemale = idVoices.find((v) => {
+      const name = (v.name || '').toLowerCase();
+      return name.includes('natural') && !isMale(name);
+    });
+    if (naturalFemale) return naturalFemale;
+
+    // 4. Suara apapun yang bukan laki-laki
+    const nonMale = idVoices.find((v) => !isMale((v.name || '').toLowerCase()));
+    if (nonMale) return nonMale;
+  }
+
+  // 5. Fallback: cari suara perempuan dari bahasa Melayu (ms) atau Inggris
+  const fallbackFemale = voices.find((v) => {
     const name = (v.name || '').toLowerCase();
-    return name.includes('gadis') || name.includes('female') || name.includes('wanita') ||
-           (name.includes('natural') && !name.includes('ardi') && !name.includes('andika'));
+    const lang = (v.lang || '').replace('_', '-').toLowerCase();
+    return (lang.startsWith('ms') || lang.startsWith('en')) &&
+           (name.includes('female') || name.includes('zira') || name.includes('hazel') ||
+            name.includes('susan') || name.includes('linda') || name.includes('google') && lang.startsWith('en'));
   });
-  if (femaleVoice) return femaleVoice;
+  if (fallbackFemale) return fallbackFemale;
 
-  // 2. Google Bahasa Indonesia di Chrome biasanya jernih bersuara perempuan
-  const googleVoice = idVoices.find((v) => (v.name || '').toLowerCase().includes('google'));
-  if (googleVoice) return googleVoice;
-
-  // 3. Suara apapun yang bukan Andika / Ardi
-  const nonMale = idVoices.find((v) => {
-    const name = (v.name || '').toLowerCase();
-    return !name.includes('andika') && !name.includes('ardi');
-  });
-  if (nonMale) return nonMale;
-
-  return idVoices[0];
+  // Terakhir: kembalikan voice Indonesia pertama (pitch akan dinaikkan di speakGreeting)
+  return idVoices[0] || null;
 }
 
 function speakGreeting(text) {
@@ -85,11 +106,17 @@ function speakGreeting(text) {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'id-ID';
     utterance.rate = 1.0;
-    utterance.pitch = 1.15; // Nada dinaikkan agar terdengar ceria, ramah & feminine ala resepsionis
 
     const voices = window.speechSynthesis.getVoices();
     const voice = getIndonesianFemaleVoice(voices);
     if (voice) utterance.voice = voice;
+
+    // Deteksi apakah voice yang terpilih kemungkinan laki-laki
+    const voiceName = (voice?.name || '').toLowerCase();
+    const isMaleVoice = ['ardi', 'andika', 'hemant', 'male'].some((m) => voiceName.includes(m));
+
+    // Pitch tinggi untuk suara feminin; lebih tinggi lagi jika terpaksa pakai voice laki-laki
+    utterance.pitch = isMaleVoice ? 1.5 : 1.2;
 
     window.speechSynthesis.speak(utterance);
   } catch (error) {
@@ -991,14 +1018,14 @@ function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (char) => 
 window.addEventListener('beforeunload', () => stopCamera(document.querySelector('video')));
 
 function getAuthToken() {
-  return sessionStorage.getItem('admin_token') || localStorage.getItem('admin_token');
+  return localStorage.getItem('admin_token');
 }
 function setAuthToken(token) {
-  sessionStorage.setItem('admin_token', token);
+  localStorage.setItem('admin_token', token);
 }
 function clearAuthToken() {
-  sessionStorage.removeItem('admin_token');
   localStorage.removeItem('admin_token');
+  sessionStorage.removeItem('admin_token'); // bersihkan sisa lama
 }
 
 function setupAdminNav() {

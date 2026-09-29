@@ -18,7 +18,25 @@ let currentBlobUrl = null; // URL Excel terbaru di Vercel Blob
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
-const activeSessions = new Set();
+const AUTH_SECRET = process.env.AUTH_SECRET || crypto.randomBytes(32).toString('hex');
+const TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 hari
+
+function createAuthToken() {
+  const payload = Date.now().toString(36);
+  const sig = crypto.createHmac('sha256', AUTH_SECRET).update(payload).digest('hex');
+  return payload + '.' + sig;
+}
+
+function verifyAuthToken(token) {
+  if (!token || typeof token !== 'string') return false;
+  const parts = token.split('.');
+  if (parts.length !== 2) return false;
+  const [payload, sig] = parts;
+  const expected = crypto.createHmac('sha256', AUTH_SECRET).update(payload).digest('hex');
+  if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) return false;
+  const issued = parseInt(payload, 36);
+  return (Date.now() - issued) < TOKEN_MAX_AGE_MS;
+}
 const IS_VERCEL = !!process.env.VERCEL;
 const DATA_DIR = IS_VERCEL ? '/tmp' : path.join(__dirname, 'data');
 fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -686,22 +704,20 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(401).json({ error: 'PIN Administrator tidak sesuai.' });
   }
 
-  const token = crypto.randomBytes(32).toString('hex');
-  activeSessions.add(token);
+  const token = createAuthToken();
   res.json({ success: true, token, message: 'Login berhasil.' });
 });
 
 app.post('/api/auth/verify', (req, res) => {
   const { token } = req.body || {};
-  if (token && activeSessions.has(token)) {
+  if (verifyAuthToken(token)) {
     return res.json({ authenticated: true });
   }
   res.status(401).json({ authenticated: false, error: 'Sesi kedaluwarsa atau tidak valid.' });
 });
 
-app.post('/api/auth/logout', (req, res) => {
-  const { token } = req.body || {};
-  if (token) activeSessions.delete(token);
+app.post('/api/auth/logout', (_req, res) => {
+  // Token stateless — client cukup hapus dari storage
   res.json({ success: true, message: 'Logout berhasil.' });
 });
 
