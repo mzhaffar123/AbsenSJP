@@ -82,9 +82,14 @@
             Tampilkan rekap
           </button>
         </form>
-        <div class="field search-field">
-          <label for="searchInput">Cari karyawan</label>
-          <input id="searchInput" type="search" placeholder="Ketik nama atau NIP..." />
+        <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+          <div class="field search-field">
+            <label for="searchInput">Cari karyawan</label>
+            <input id="searchInput" type="search" placeholder="Ketik nama atau NIP..." />
+          </div>
+          <button id="btnOpenManualModal" type="button" class="btn btn-primary" style="padding: 10px 16px; font-size: 13px;">
+            ➕ Input Absen Manual
+          </button>
         </div>
       </div>
 
@@ -114,6 +119,7 @@
               <th>Jam Masuk</th>
               <th>Jam Keluar</th>
               <th>Status</th>
+              <th style="text-align: center; width: 130px;">Aksi</th>
             </tr>
           </thead>
           <tbody id="recordRows"></tbody>
@@ -131,6 +137,7 @@
               <th>Jadwal Shift</th>
               <th>Jam Kerja Shift</th>
               <th>Status Kehadiran</th>
+              <th style="text-align: center; width: 120px;">Aksi</th>
             </tr>
           </thead>
           <tbody id="absentRows"></tbody>
@@ -154,6 +161,112 @@
       </div>
     </section>
   </main>
+
+  <!-- MODAL: INPUT ABSEN MANUAL -->
+  <div id="modalManualAttendance" class="modal-overlay" style="display: none;">
+    <div class="modal-box" style="max-width: 500px;">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">Admin Action</div>
+          <h3 style="margin: 0; font-size: 20px;">Input Absensi Manual</h3>
+          <p style="color: var(--muted); font-size: 13px; margin: 4px 0 0;">Tambahkan data absensi untuk karyawan yang lupa absen.</p>
+        </div>
+        <button type="button" class="modal-close" id="btnCloseManualModal">✕</button>
+      </div>
+
+      <form id="formManualAttendance" style="display: grid; gap: 14px; margin-top: 10px;">
+        <div class="field">
+          <label for="manualEmployee">Pilih Karyawan</label>
+          <select id="manualEmployee" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--line);">
+            <option value="">-- Pilih Karyawan --</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="field">
+            <label for="manualTanggal">Tanggal</label>
+            <input id="manualTanggal" type="date" required />
+          </div>
+          <div class="field">
+            <label for="manualShift">Shift</label>
+            <select id="manualShift" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--line);">
+              <option value="Shift 1">Shift 1 (Pagi)</option>
+              <option value="Shift 2">Shift 2 (Siang)</option>
+              <option value="Shift 3">Shift 3 (Malam)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="field">
+            <label for="manualJamMasuk">Jam Masuk</label>
+            <input id="manualJamMasuk" type="time" required value="06:00" />
+          </div>
+          <div class="field">
+            <label for="manualJamKeluar">Jam Keluar (Opsional)</label>
+            <input id="manualJamKeluar" type="time" />
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px;">
+          <button type="button" class="btn btn-secondary" id="btnCancelManual">Batal</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveManual">Simpan Kehadiran</button>
+        </div>
+        <div id="manualStatus" class="status" style="margin-top: 6px; text-align: center;"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT ABSENSI -->
+  <div id="modalEditAttendance" class="modal-overlay" style="display: none;">
+    <div class="modal-box" style="max-width: 500px;">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">Admin Action</div>
+          <h3 style="margin: 0; font-size: 20px;">Koreksi / Edit Absensi</h3>
+          <p style="color: var(--muted); font-size: 13px; margin: 4px 0 0;" id="editModalSub">Ubah data jam masuk atau jam pulang karyawan.</p>
+        </div>
+        <button type="button" class="modal-close" id="btnCloseEditModal">✕</button>
+      </div>
+
+      <form id="formEditAttendance" style="display: grid; gap: 14px; margin-top: 10px;">
+        <input type="hidden" id="editAttendanceId" />
+
+        <div style="background: var(--paper); padding: 12px 14px; border-radius: 9px; border: 1px solid var(--line);">
+          <strong id="editEmpNama" style="display: block; font-size: 15px; color: var(--ink);">—</strong>
+          <span id="editEmpNip" style="font-size: 12px; color: var(--muted);">—</span>
+          <span style="margin: 0 6px; color: var(--line);">|</span>
+          <span id="editTanggal" style="font-size: 12px; font-weight: 600; color: var(--teal-dark);">—</span>
+        </div>
+
+        <div class="field">
+          <label for="editShift">Shift</label>
+          <select id="editShift" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--line);">
+            <option value="Shift 1">Shift 1</option>
+            <option value="Shift 2">Shift 2</option>
+            <option value="Shift 3">Shift 3</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="field">
+            <label for="editJamMasuk">Jam Masuk</label>
+            <input id="editJamMasuk" type="time" required />
+          </div>
+          <div class="field">
+            <label for="editJamKeluar">Jam Keluar</label>
+            <input id="editJamKeluar" type="time" placeholder="Kosongkan jika belum pulang" />
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px;">
+          <button type="button" class="btn btn-secondary" id="btnCancelEdit">Batal</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveEdit">Simpan Perubahan</button>
+        </div>
+        <div id="editStatus" class="status" style="margin-top: 6px; text-align: center;"></div>
+      </form>
+    </div>
+  </div>
 </body>
 
 </html>

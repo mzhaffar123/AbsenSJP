@@ -557,10 +557,16 @@ async function initDashboard() {
               <td>${row.jam_masuk || '-'}</td>
               <td>${row.jam_keluar || '-'}</td>
               <td><span class="badge ${row.status === 'lengkap' ? 'ok' : 'pending'}">${row.status}${row.terlambat ? ' · terlambat' : ''}</span></td>
+              <td style="text-align: center;">
+                <div class="action-cell">
+                  <button type="button" class="btn btn-sm btn-outline btn-edit-att" data-id="${row.id}" data-nama="${escapeHtml(row.nama)}" data-nip="${escapeHtml(row.nip)}" data-tanggal="${row.tanggal}" data-shift="${row.shift}" data-masuk="${row.jam_masuk || ''}" data-keluar="${row.jam_keluar || ''}" title="Koreksi Jam/Shift">✏️ Edit</button>
+                  <button type="button" class="btn btn-sm btn-danger btn-del-att" data-id="${row.id}" data-nama="${escapeHtml(row.nama)}" title="Hapus Absensi">🗑️ Hapus</button>
+                </div>
+              </td>
             </tr>
           `;
           }).join('')
-        : `<tr><td colspan="9" class="empty">${searchQuery ? 'Tidak ada hasil yang cocok dengan pencarian.' : 'Belum ada data kehadiran pada tanggal ini.'}</td></tr>`;
+        : `<tr><td colspan="10" class="empty">${searchQuery ? 'Tidak ada hasil yang cocok dengan pencarian.' : 'Belum ada data kehadiran pada tanggal ini.'}</td></tr>`;
     }
 
     // TAB 2: BELUM HADIR (ALPHA)
@@ -579,9 +585,12 @@ async function initDashboard() {
               <td><span class="badge shift-badge">${escapeHtml(emp.jadwal_shift || 'Shift 1')}</span></td>
               <td><span style="font-size:13px;color:var(--muted);">${currentShiftTimes[emp.jadwal_shift] || '06:00 - 14:00'}</span></td>
               <td><span class="badge fail">Alpha / Belum Masuk</span></td>
+              <td style="text-align: center;">
+                <button type="button" class="btn btn-sm btn-primary btn-quick-att" data-empid="${emp.id}" data-shift="${emp.jadwal_shift === 'Libur (Off)' ? 'Shift 1' : (emp.jadwal_shift || 'Shift 1')}" title="Input Absen Manual">➕ Hadirkan</button>
+              </td>
             </tr>
           `).join('')
-        : `<tr><td colspan="6" class="empty">${searchQuery ? 'Tidak ada hasil yang cocok dengan pencarian.' : (currentRows.length ? 'Semua karyawan yang terjadwal kerja hari ini sudah hadir.' : 'Tidak ada karyawan yang belum hadir.')}</td></tr>`;
+        : `<tr><td colspan="7" class="empty">${searchQuery ? 'Tidak ada hasil yang cocok dengan pencarian.' : (currentRows.length ? 'Semua karyawan yang terjadwal kerja hari ini sudah hadir.' : 'Tidak ada karyawan yang belum hadir.')}</td></tr>`;
     }
 
     // TAB 3: LIBUR / OFF
@@ -601,6 +610,156 @@ async function initDashboard() {
         : `<tr><td colspan="5" class="empty">${searchQuery ? 'Tidak ada hasil yang cocok dengan pencarian.' : 'Tidak ada karyawan yang libur hari ini.'}</td></tr>`;
     }
   };
+
+  // Delegasi Event Klik untuk Edit & Hapus Absensi
+  document.addEventListener('click', async (e) => {
+    // Tombol Edit Absensi
+    const btnEdit = e.target.closest('.btn-edit-att');
+    if (btnEdit) {
+      const { id, nama, nip, tanggal, shift, masuk, keluar } = btnEdit.dataset;
+      $('#editAttendanceId').value = id;
+      $('#editEmpNama').textContent = nama;
+      $('#editEmpNip').textContent = `NIP: ${nip}`;
+      $('#editTanggal').textContent = tanggal;
+      $('#editShift').value = ['Shift 1', 'Shift 2', 'Shift 3'].includes(shift) ? shift : 'Shift 1';
+      $('#editJamMasuk').value = masuk || '06:00';
+      $('#editJamKeluar').value = keluar || '';
+      $('#editStatus').textContent = '';
+      $('#modalEditAttendance').style.display = 'flex';
+      return;
+    }
+
+    // Tombol Hapus Absensi
+    const btnDel = e.target.closest('.btn-del-att');
+    if (btnDel) {
+      const { id, nama } = btnDel.dataset;
+      if (!confirm(`Hapus catatan kehadiran untuk ${nama}?\nData absensi ini akan dihapus dari rekap.`)) return;
+      try {
+        const res = await fetch(`/api/attendance/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Gagal menghapus');
+        refresh();
+      } catch (err) {
+        alert('Gagal menghapus: ' + err.message);
+      }
+      return;
+    }
+
+    // Tombol Quick-Add dari Tab Alpha
+    const btnQuick = e.target.closest('.btn-quick-att');
+    if (btnQuick) {
+      const { empid, shift } = btnQuick.dataset;
+      await openManualModal(empid, shift);
+      return;
+    }
+  });
+
+  // Modal Handlers: Input Manual
+  let cachedEmployees = null;
+  const loadEmployeesDropdown = async () => {
+    if (!cachedEmployees) {
+      try {
+        cachedEmployees = await fetch('/api/employees').then((r) => r.json());
+      } catch {
+        cachedEmployees = [];
+      }
+    }
+    const sel = $('#manualEmployee');
+    if (sel) {
+      sel.innerHTML = '<option value="">-- Pilih Karyawan --</option>' +
+        cachedEmployees.map((emp) => `<option value="${emp.id}">${escapeHtml(emp.nama)} (${escapeHtml(emp.nip)})</option>`).join('');
+    }
+  };
+
+  const openManualModal = async (selectedEmpId = null, selectedShift = null) => {
+    await loadEmployeesDropdown();
+    const modal = $('#modalManualAttendance');
+    if (!modal) return;
+    $('#manualTanggal').value = date.value || isoDate();
+    if (selectedEmpId) $('#manualEmployee').value = selectedEmpId;
+    if (selectedShift && ['Shift 1', 'Shift 2', 'Shift 3'].includes(selectedShift)) {
+      $('#manualShift').value = selectedShift;
+    } else {
+      $('#manualShift').value = 'Shift 1';
+    }
+    $('#manualJamMasuk').value = localTime().slice(0, 5);
+    $('#manualJamKeluar').value = '';
+    $('#manualStatus').textContent = '';
+    modal.style.display = 'flex';
+  };
+
+  $('#btnOpenManualModal')?.addEventListener('click', () => openManualModal());
+  $('#btnCloseManualModal')?.addEventListener('click', () => { $('#modalManualAttendance').style.display = 'none'; });
+  $('#btnCancelManual')?.addEventListener('click', () => { $('#modalManualAttendance').style.display = 'none'; });
+
+  $('#formManualAttendance')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const status = $('#manualStatus');
+    const employee_id = Number($('#manualEmployee').value);
+    const tanggal = $('#manualTanggal').value;
+    const shift = $('#manualShift').value;
+    const jam_masuk = $('#manualJamMasuk').value;
+    const jam_keluar = $('#manualJamKeluar').value || null;
+
+    if (!employee_id || !tanggal || !shift || !jam_masuk) {
+      showStatus(status, 'Mohon lengkapi seluruh isian wajib.', 'error');
+      return;
+    }
+
+    try {
+      showStatus(status, 'Menyimpan data...');
+      const res = await fetch('/api/attendance/manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id, tanggal, shift, jam_masuk, jam_keluar })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan');
+      showStatus(status, data.message || 'Berhasil disimpan!', 'ok');
+      setTimeout(() => {
+        $('#modalManualAttendance').style.display = 'none';
+        refresh();
+      }, 500);
+    } catch (err) {
+      showStatus(status, err.message, 'error');
+    }
+  });
+
+  // Modal Handlers: Edit Absensi
+  $('#btnCloseEditModal')?.addEventListener('click', () => { $('#modalEditAttendance').style.display = 'none'; });
+  $('#btnCancelEdit')?.addEventListener('click', () => { $('#modalEditAttendance').style.display = 'none'; });
+
+  $('#formEditAttendance')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const status = $('#editStatus');
+    const id = Number($('#editAttendanceId').value);
+    const shift = $('#editShift').value;
+    const jam_masuk = $('#editJamMasuk').value;
+    const jam_keluar = $('#editJamKeluar').value || null;
+
+    if (!id || !jam_masuk) {
+      showStatus(status, 'Jam masuk wajib diisi.', 'error');
+      return;
+    }
+
+    try {
+      showStatus(status, 'Menyimpan perubahan...');
+      const res = await fetch(`/api/attendance/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shift, jam_masuk, jam_keluar })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan');
+      showStatus(status, data.message || 'Perubahan berhasil disimpan!', 'ok');
+      setTimeout(() => {
+        $('#modalEditAttendance').style.display = 'none';
+        refresh();
+      }, 500);
+    } catch (err) {
+      showStatus(status, err.message, 'error');
+    }
+  });
 
   const searchInput = $('#searchInput');
   searchInput?.addEventListener('input', (event) => {

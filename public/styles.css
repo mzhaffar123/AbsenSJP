@@ -276,6 +276,37 @@ button        { cursor: pointer; border: 0; }
   padding: 7px 10px;
   font-size: 12px;
 }
+.btn-danger:hover {
+  background: #fde2dc;
+}
+
+.btn-sm {
+  padding: 5px 9px;
+  font-size: 11px;
+  border-radius: 7px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-outline {
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+.btn-outline:hover {
+  background: var(--mint);
+  color: var(--teal-dark);
+  border-color: var(--teal);
+}
+
+.action-cell {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+}
 
 .mode-controls {
   display: flex;

@@ -640,6 +640,77 @@ app.get('/api/attendance', async (req, res) => {
   res.json({ tanggal, dayName, rows, absent, off, stats, shiftTimes });
 });
 
+app.post('/api/attendance/manual', async (req, res) => {
+  try {
+    const { employee_id, tanggal, shift, jam_masuk, jam_keluar } = req.body || {};
+    if (!employee_id || !tanggal || !shift || !jam_masuk) {
+      return res.status(400).json({ error: 'Karyawan, tanggal, shift, dan jam masuk wajib diisi.' });
+    }
+    const employee = await db.get('SELECT id, nama, nip, foto FROM employees WHERE id = ?', [employee_id]);
+    if (!employee) return res.status(404).json({ error: 'Data karyawan tidak ditemukan.' });
+
+    const existing = await db.get(
+      'SELECT id FROM attendance WHERE employee_id = ? AND tanggal = ? AND shift = ?',
+      [employee_id, tanggal, shift]
+    );
+
+    if (existing) {
+      await db.run(
+        'UPDATE attendance SET jam_masuk = ?, jam_keluar = ?, foto_masuk = COALESCE(foto_masuk, ?), foto_keluar = COALESCE(foto_keluar, ?) WHERE id = ?',
+        [jam_masuk, jam_keluar || null, employee.foto, jam_keluar ? employee.foto : null, existing.id]
+      );
+    } else {
+      await db.run(
+        'INSERT INTO attendance (employee_id, tanggal, jam_masuk, jam_keluar, shift, foto_masuk, foto_keluar) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [employee_id, tanggal, jam_masuk, jam_keluar || null, shift, employee.foto, jam_keluar ? employee.foto : null]
+      );
+    }
+
+    try { await queueExcelRefresh(); } catch (err) { console.error('Excel refresh error:', err.message); }
+    res.json({ success: true, message: `Absensi manual untuk ${employee.nama} berhasil disimpan.` });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal menyimpan absensi manual: ' + err.message });
+  }
+});
+
+app.put('/api/attendance/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { shift, jam_masuk, jam_keluar } = req.body || {};
+    if (!id || !jam_masuk) {
+      return res.status(400).json({ error: 'ID dan jam masuk wajib diisi.' });
+    }
+    const record = await db.get('SELECT id FROM attendance WHERE id = ?', [id]);
+    if (!record) return res.status(404).json({ error: 'Data absensi tidak ditemukan.' });
+
+    await db.run(
+      'UPDATE attendance SET shift = COALESCE(?, shift), jam_masuk = ?, jam_keluar = ? WHERE id = ?',
+      [shift || null, jam_masuk, jam_keluar || null, id]
+    );
+
+    try { await queueExcelRefresh(); } catch (err) { console.error('Excel refresh error:', err.message); }
+    res.json({ success: true, message: 'Data absensi berhasil diperbarui.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal memperbarui absensi: ' + err.message });
+  }
+});
+
+app.delete('/api/attendance/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'ID tidak valid.' });
+    const record = await db.get('SELECT id FROM attendance WHERE id = ?', [id]);
+    if (!record) return res.status(404).json({ error: 'Data absensi tidak ditemukan.' });
+
+    await db.run('DELETE FROM attendance WHERE id = ?', [id]);
+
+    try { await queueExcelRefresh(); } catch (err) { console.error('Excel refresh error:', err.message); }
+    res.json({ success: true, message: 'Data absensi berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal menghapus absensi: ' + err.message });
+  }
+});
+
 app.get('/api/settings', async (_req, res) => {
   const settings = await getSettings();
   res.json({
