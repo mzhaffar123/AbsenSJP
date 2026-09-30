@@ -1041,7 +1041,7 @@ app.get('/api/attendance/export-period.xlsx', async (req, res) => {
 
     const settings = await getSettings();
     const dateList = getDatesInRange(startDate, endDate);
-    const employees = await db.all('SELECT id, nama, nip, shift FROM employees ORDER BY nama');
+    const employees = await db.all('SELECT id, nama, nip, shift, foto FROM employees ORDER BY nama');
     const schedules = await db.all('SELECT employee_id, hari, shift, piket FROM schedules');
     const attendances = await db.all(`
       SELECT a.id, a.employee_id, a.tanggal, a.jam_masuk, a.jam_keluar, a.shift,
@@ -1062,18 +1062,18 @@ app.get('/api/attendance/export-period.xlsx', async (req, res) => {
     const sheet1 = workbook.addWorksheet('Rekap Periode');
     sheet1.properties.defaultRowHeight = 22;
 
-    sheet1.mergeCells('A1:I1');
+    sheet1.mergeCells('A1:J1');
     sheet1.getCell('A1').value = 'LAPORAN REKAPITULASI KEHADIRAN KARYAWAN';
     sheet1.getCell('A1').font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF09584F' } };
     sheet1.getCell('A1').alignment = { vertical: 'middle', horizontal: 'center' };
 
-    sheet1.mergeCells('A2:I2');
+    sheet1.mergeCells('A2:J2');
     sheet1.getCell('A2').value = `Periode: ${startDate} s/d ${endDate} | Total: ${dateList.length} Hari`;
     sheet1.getCell('A2').font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF555555' } };
     sheet1.getCell('A2').alignment = { vertical: 'middle', horizontal: 'center' };
 
     sheet1.getRow(4).values = [
-      'No', 'NIP / ID', 'Nama Karyawan', 'Shift Utama', 'Hari Terjadwal', 'Hadir Tepat Waktu', 'Terlambat', 'Alpha (Tidak Hadir)', '% Kehadiran'
+      'No', 'Foto', 'NIP / ID', 'Nama Karyawan', 'Shift Utama', 'Hari Terjadwal', 'Hadir Tepat Waktu', 'Terlambat', 'Alpha (Tidak Hadir)', '% Kehadiran'
     ];
     sheet1.getRow(4).font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
     sheet1.getRow(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F7C72' } };
@@ -1081,6 +1081,7 @@ app.get('/api/attendance/export-period.xlsx', async (req, res) => {
 
     sheet1.columns = [
       { key: 'no', width: 6 },
+      { key: 'foto', width: 16 },
       { key: 'nip', width: 16 },
       { key: 'nama', width: 26 },
       { key: 'shift', width: 14 },
@@ -1124,6 +1125,7 @@ app.get('/api/attendance/export-period.xlsx', async (req, res) => {
       const row = sheet1.getRow(rowIdx++);
       row.values = [
         index + 1,
+        '',
         emp.nip,
         emp.nama,
         emp.shift || 'Otomatis',
@@ -1133,9 +1135,26 @@ app.get('/api/attendance/export-period.xlsx', async (req, res) => {
         totalAbsent,
         `${rate}%`
       ];
+      row.height = 72;
       row.alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell(4).alignment = { vertical: 'middle', horizontal: 'left' };
       row.getCell(3).alignment = { vertical: 'middle', horizontal: 'left' };
-      row.getCell(2).alignment = { vertical: 'middle', horizontal: 'left' };
+
+      if (emp.foto && typeof emp.foto === 'string' && emp.foto.includes(',')) {
+        try {
+          const parts = emp.foto.split(',');
+          const base64Data = parts[1];
+          const ext = parts[0].includes('png') ? 'png' : 'jpeg';
+          const imageId = workbook.addImage({ base64: base64Data, extension: ext });
+          sheet1.addImage(imageId, {
+            tl: { col: 1.12, row: rowIdx - 2 + 0.08 },
+            ext: { width: 70, height: 70 },
+            editAs: 'oneCell'
+          });
+        } catch (err) {
+          console.warn('Gagal menyematkan foto karyawan ke Excel:', err.message);
+        }
+      }
     });
 
     const sheet2 = workbook.addWorksheet('Detail Harian');
