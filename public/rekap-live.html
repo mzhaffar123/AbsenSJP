@@ -1,0 +1,292 @@
+﻿<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AbsenSJP - Rekap Live</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0f7c72" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .live-badge{display:inline-flex;align-items:center;gap:6px;background:#d1fae5;color:#065f46;font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:.04em}
+    .live-dot{width:8px;height:8px;background:#10b981;border-radius:50%;animation:pulse-live 1.4s infinite}
+    @keyframes pulse-live{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+    .refresh-bar-wrap{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);margin-top:8px}
+    .refresh-bar-track{flex:1;height:4px;background:var(--line);border-radius:4px;overflow:hidden}
+    .refresh-bar-fill{height:100%;background:linear-gradient(90deg,#0f7c72,#34d399);border-radius:4px;transition:width 1s linear}
+    .live-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:24px}
+    .live-kpi{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:16px 18px;text-align:center;transition:transform .18s,box-shadow .18s}
+    .live-kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+    .live-kpi .kpi-val{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;line-height:1;display:block}
+    .live-kpi .kpi-label{font-size:12px;color:var(--muted);margin-top:6px;display:block}
+    .live-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+    .live-tab{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;border:1.5px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s}
+    .live-tab.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+    .live-tab .tab-count{display:inline-block;background:rgba(255,255,255,.25);color:inherit;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:5px}
+    .live-tab:not(.active) .tab-count{background:var(--line);color:var(--ink)}
+    .live-table-wrap{overflow-x:auto}
+    .live-table{width:100%;border-collapse:collapse;font-size:14px}
+    .live-table thead th{background:var(--teal);color:#fff;font-weight:600;padding:10px 12px;text-align:left;white-space:nowrap}
+    .live-table tbody tr{border-bottom:1px solid var(--line);transition:background .12s}
+    .live-table tbody tr:hover{background:var(--mint)}
+    .live-table tbody td{padding:10px 12px;vertical-align:middle}
+    .foto-thumb{width:48px;height:36px;object-fit:cover;border-radius:6px;border:1.5px solid #10b981;cursor:pointer;transition:transform .15s}
+    .foto-thumb:hover{transform:scale(1.08)}
+    .foto-thumb.keluar{border-color:#0284c7}
+    .foto-none{font-size:11px;color:var(--muted);font-style:italic}
+    .badge-alpha{background:#fee2e2;color:#991b1b}
+    .badge-off{background:#f1f5f9;color:#64748b}
+    .badge-done{background:#dbeafe;color:#1e40af}
+    .badge-belum{background:#fef3c7;color:#92400e}
+    .live-search{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+    .live-search input{flex:1;min-width:180px;padding:8px 12px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;background:var(--card)}
+    .live-search input:focus{outline:none;border-color:var(--teal)}
+    .photo-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:1000;justify-content:center;align-items:center}
+    .photo-modal-overlay.open{display:flex}
+    .photo-modal-box{background:#fff;border-radius:16px;overflow:hidden;max-width:520px;width:92vw;box-shadow:0 32px 80px rgba(0,0,0,.35);animation:zoom-in .2s ease}
+    @keyframes zoom-in{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}
+    .photo-modal-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:var(--teal);color:#fff;font-weight:700;font-size:15px}
+    .photo-modal-header button{background:rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:4px 10px;font-size:18px;line-height:1}
+    .photo-modal-img{width:100%;max-height:420px;object-fit:contain;display:block;background:#111}
+    .photo-modal-footer{padding:10px 18px;font-size:12px;color:var(--muted);text-align:center}
+    .live-empty{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+    .shift-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--mint);color:var(--teal-dark)}
+    .live-datebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+    .live-datebar label{font-size:13px;font-weight:600;color:var(--muted)}
+    .live-datebar input[type="date"]{padding:7px 12px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;background:var(--card)}
+    .live-datebar input[type="date"]:focus{outline:none;border-color:var(--teal)}
+    .btn-today{padding:7px 14px;border-radius:8px;background:var(--mint);color:var(--teal-dark);font-size:13px;font-weight:600;border:1.5px solid var(--line)}
+    .btn-today:hover{background:var(--teal);color:#fff;border-color:var(--teal)}
+    .nav-live{color:var(--teal)!important;font-weight:700!important}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="topbar">
+    <a class="brand" href="/">
+      <img src="/logosjp.jpeg" alt="Logo" class="brand-logo-img" width="42" height="42" />AbsenSJP
+    </a>
+    <nav class="nav">
+      <a data-page="kiosk" href="/">Absen</a>
+      <a data-page="register" href="/register.html">Karyawan</a>
+      <a data-page="jadwal" href="/jadwal.html">Jadwal</a>
+      <a data-page="dashboard" href="/dashboard.html">Rekap</a>
+      <a data-page="laporan" href="/laporan.html">Laporan</a>
+      <a data-page="settings" href="/settings.html">Pengaturan</a>
+      <a data-page="rekap-live" href="/rekap-live.html" class="active nav-live">Live</a>
+    </nav>
+  </header>
+
+  <section class="page-head" style="margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div class="eyebrow">Monitor Real-Time - Auto Refresh</div>
+        <h1>Rekap Absensi Live</h1>
+        <p style="margin-top:6px;color:var(--muted);">Data kehadiran diperbarui otomatis setiap 10 detik.</p>
+      </div>
+      <div style="text-align:right;">
+        <div class="live-badge"><span class="live-dot"></span> LIVE</div>
+        <div class="refresh-bar-wrap" style="justify-content:flex-end;">
+          <span id="refreshCountdown">10s</span>
+          <div class="refresh-bar-track" style="width:120px;">
+            <div class="refresh-bar-fill" id="refreshBarFill" style="width:100%;"></div>
+          </div>
+        </div>
+        <div id="lastUpdated" style="font-size:11px;color:var(--muted);margin-top:4px;">Belum dimuat</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="live-datebar">
+    <label for="liveDatePicker">Tanggal:</label>
+    <input type="date" id="liveDatePicker" />
+    <button class="btn-today" id="btnLiveToday">Hari Ini</button>
+    <span id="liveDayName" style="font-size:13px;font-weight:600;color:var(--teal);"></span>
+  </div>
+
+  <div class="live-kpi-grid">
+    <div class="live-kpi"><span class="kpi-val" id="kvTotal" style="color:var(--ink);">-</span><span class="kpi-label">Total Karyawan</span></div>
+    <div class="live-kpi"><span class="kpi-val" id="kvHadir" style="color:#059669;">-</span><span class="kpi-label">Sudah Hadir</span></div>
+    <div class="live-kpi"><span class="kpi-val" id="kvSelesai" style="color:#2563eb;">-</span><span class="kpi-label">Sudah Pulang</span></div>
+    <div class="live-kpi"><span class="kpi-val" id="kvTerlambat" style="color:#d97706;">-</span><span class="kpi-label">Terlambat</span></div>
+    <div class="live-kpi"><span class="kpi-val" id="kvAlpha" style="color:#dc2626;">-</span><span class="kpi-label">Belum Hadir</span></div>
+    <div class="live-kpi"><span class="kpi-val" id="kvLibur" style="color:#64748b;">-</span><span class="kpi-label">Libur / Off</span></div>
+  </div>
+
+  <div class="card" style="padding:20px;">
+    <div class="live-search">
+      <input type="text" id="liveSearch" placeholder="Cari nama atau NIP karyawan..." />
+      <span id="liveSearchCount" style="font-size:13px;color:var(--muted);white-space:nowrap;"></span>
+    </div>
+    <div class="live-tabs">
+      <button class="live-tab active" data-tab="hadir">Sudah Hadir <span class="tab-count" id="tcHadir">0</span></button>
+      <button class="live-tab" data-tab="alpha">Belum Hadir <span class="tab-count" id="tcAlpha">0</span></button>
+      <button class="live-tab" data-tab="libur">Libur / Off <span class="tab-count" id="tcLibur">0</span></button>
+    </div>
+
+    <div id="panelHadir" class="live-table-wrap">
+      <table class="live-table">
+        <thead><tr><th style="width:52px;">Foto Masuk</th><th style="width:52px;">Foto Keluar</th><th>Nama</th><th>NIP</th><th>Shift</th><th>Jam Masuk</th><th>Jam Keluar</th><th>Status</th></tr></thead>
+        <tbody id="tbodyHadir"></tbody>
+      </table>
+    </div>
+    <div id="panelAlpha" class="live-table-wrap" style="display:none;">
+      <table class="live-table">
+        <thead><tr><th style="width:52px;">Foto</th><th>Nama</th><th>NIP</th><th>Jadwal Shift</th><th>Jam Shift</th><th>Status</th></tr></thead>
+        <tbody id="tbodyAlpha"></tbody>
+      </table>
+    </div>
+    <div id="panelLibur" class="live-table-wrap" style="display:none;">
+      <table class="live-table">
+        <thead><tr><th style="width:52px;">Foto</th><th>Nama</th><th>NIP</th><th>Keterangan</th></tr></thead>
+        <tbody id="tbodyLibur"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<div class="photo-modal-overlay" id="photoModal">
+  <div class="photo-modal-box">
+    <div class="photo-modal-header">
+      <span id="photoModalTitle">Foto Absensi</span>
+      <button id="btnClosePhotoModal">x</button>
+    </div>
+    <img id="photoModalImg" class="photo-modal-img" src="" alt="Foto Absensi" />
+    <div class="photo-modal-footer" id="photoModalCaption"></div>
+  </div>
+</div>
+
+<script>
+  var $ = function(id){ return document.getElementById(id); };
+  function escHtml(s){ return String(s||'').replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);}); }
+
+  var allRows=[], allAbsent=[], allOff=[], shiftTimes={};
+  var activeTab='hadir', searchQuery='', countdownVal=10, countdownInterval=null;
+  var REFRESH_SECS=10;
+
+  var picker=$('liveDatePicker');
+  picker.value=new Date().toLocaleDateString('en-CA');
+  updateDayName();
+
+  $('btnLiveToday').addEventListener('click',function(){ picker.value=new Date().toLocaleDateString('en-CA'); updateDayName(); fetchData(); });
+  picker.addEventListener('change',function(){ updateDayName(); fetchData(); });
+
+  function updateDayName(){
+    var parts=picker.value.split('-').map(Number);
+    var dt=new Date(parts[0],parts[1]-1,parts[2]);
+    $('liveDayName').textContent=dt.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  }
+
+  document.querySelectorAll('.live-tab').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      activeTab=btn.dataset.tab;
+      document.querySelectorAll('.live-tab').forEach(function(b){ b.classList.toggle('active',b===btn); });
+      $('panelHadir').style.display=activeTab==='hadir'?'block':'none';
+      $('panelAlpha').style.display=activeTab==='alpha'?'block':'none';
+      $('panelLibur').style.display=activeTab==='libur'?'block':'none';
+      renderTables();
+    });
+  });
+
+  $('liveSearch').addEventListener('input',function(e){ searchQuery=e.target.value.trim().toLowerCase(); renderTables(); });
+
+  function matchSearch(item){ if(!searchQuery)return true; return (item.nama&&item.nama.toLowerCase().includes(searchQuery))||(item.nip&&item.nip.toLowerCase().includes(searchQuery)); }
+
+  function openPhotoModal(src,title,caption){ $('photoModalImg').src=src; $('photoModalTitle').textContent=title; $('photoModalCaption').textContent=caption; $('photoModal').classList.add('open'); }
+  $('btnClosePhotoModal').addEventListener('click',function(){ $('photoModal').classList.remove('open'); });
+  $('photoModal').addEventListener('click',function(e){ if(e.target===$('photoModal'))$('photoModal').classList.remove('open'); });
+
+  function badgeStatus(row){
+    if(row.status==='lengkap') return '<span class="badge badge-done">Selesai'+(row.terlambat?' - Terlambat':'')+'</span>';
+    return '<span class="badge badge-belum">Belum Pulang'+(row.terlambat?' - Terlambat':'')+'</span>';
+  }
+
+  function photoCell(src,type,nama,jam){
+    if(!src) return '<span class="foto-none">-</span>';
+    var cls=type==='keluar'?'foto-thumb keluar':'foto-thumb';
+    var title=type==='keluar'?('Foto Keluar '+nama):('Foto Masuk '+nama);
+    var safeTitle=escHtml(title); var safeName=escHtml(nama); var safeJam=jam||'-';
+    return '<img src="'+src+'" class="'+cls+'" alt="'+type+'" title="Klik untuk perbesar" onclick="openPhotoModal(\''+src+'\',\''+safeTitle+'\',\''+safeName+' - '+safeJam+'\')" />';
+  }
+
+  function renderTables(){
+    var filtHadir=allRows.filter(matchSearch);
+    $('tcHadir').textContent=filtHadir.length;
+    if(activeTab==='hadir'){
+      if(!filtHadir.length){
+        $('tbodyHadir').innerHTML='<tr><td colspan="8" class="live-empty">'+(searchQuery?'Tidak ada hasil.':'Belum ada karyawan yang hadir.')+'</td></tr>';
+      } else {
+        $('tbodyHadir').innerHTML=filtHadir.map(function(r){
+          return '<tr><td>'+photoCell(r.foto_masuk||r.foto,'masuk',r.nama,r.jam_masuk)+'</td><td>'+photoCell(r.foto_keluar,'keluar',r.nama,r.jam_keluar)+'</td><td><strong>'+escHtml(r.nama)+'</strong>'+(r.is_piket?'<span class="badge piket" style="font-size:10px;padding:1px 6px;margin-left:4px;">Piket</span>':'')+'</td><td>'+escHtml(r.nip)+'</td><td><span class="shift-tag">'+escHtml(r.shift||'-')+'</span></td><td>'+(r.jam_masuk||'-')+'</td><td>'+(r.jam_keluar||'<span class="foto-none">Belum</span>')+'</td><td>'+badgeStatus(r)+'</td></tr>';
+        }).join('');
+      }
+    }
+
+    var filtAlpha=allAbsent.filter(matchSearch);
+    $('tcAlpha').textContent=filtAlpha.length;
+    if(activeTab==='alpha'){
+      if(!filtAlpha.length){
+        $('tbodyAlpha').innerHTML='<tr><td colspan="6" class="live-empty">'+(searchQuery?'Tidak ada hasil.':'Semua karyawan terjadwal sudah hadir!')+'</td></tr>';
+      } else {
+        $('tbodyAlpha').innerHTML=filtAlpha.map(function(e){
+          var jadwal=typeof e.jadwal_shift==='object'?(e.jadwal_shift&&e.jadwal_shift.shift||'-'):(e.jadwal_shift||'-');
+          return '<tr><td>'+(e.foto?'<img src="'+e.foto+'" class="foto-thumb" style="border-color:#dc2626;" alt="Foto" />':'<span class="foto-none">-</span>')+'</td><td><strong>'+escHtml(e.nama)+'</strong></td><td>'+escHtml(e.nip)+'</td><td><span class="shift-tag">'+escHtml(jadwal)+'</span></td><td style="font-size:12px;color:var(--muted);">'+(shiftTimes[jadwal]||'-')+'</td><td><span class="badge badge-alpha">Belum Hadir</span></td></tr>';
+        }).join('');
+      }
+    }
+
+    var filtLibur=allOff.filter(matchSearch);
+    $('tcLibur').textContent=filtLibur.length;
+    if(activeTab==='libur'){
+      if(!filtLibur.length){
+        $('tbodyLibur').innerHTML='<tr><td colspan="4" class="live-empty">'+(searchQuery?'Tidak ada hasil.':'Tidak ada karyawan yang libur hari ini.')+'</td></tr>';
+      } else {
+        $('tbodyLibur').innerHTML=filtLibur.map(function(e){
+          return '<tr><td>'+(e.foto?'<img src="'+e.foto+'" class="foto-thumb" style="border-color:#64748b;" alt="Foto" />':'<span class="foto-none">-</span>')+'</td><td><strong>'+escHtml(e.nama)+'</strong></td><td>'+escHtml(e.nip)+'</td><td><span class="badge badge-off">Libur / Off</span></td></tr>';
+        }).join('');
+      }
+    }
+
+    var curList=activeTab==='hadir'?filtHadir:activeTab==='alpha'?filtAlpha:filtLibur;
+    $('liveSearchCount').textContent=searchQuery?('Menampilkan '+curList.length+' hasil'):'';
+  }
+
+  async function fetchData(){
+    try {
+      var date=picker.value;
+      var res=await fetch('/api/attendance?tanggal='+date+'&_t='+Date.now());
+      var data=await res.json();
+      allRows=data.rows||[]; allAbsent=data.absent||[]; allOff=data.off||[]; shiftTimes=data.shiftTimes||{};
+      var stats=data.stats||{};
+      $('kvTotal').textContent=stats.totalEmployees!==undefined?stats.totalEmployees:(allRows.length+allAbsent.length+allOff.length);
+      $('kvHadir').textContent=stats.presentCount!==undefined?stats.presentCount:allRows.length;
+      $('kvSelesai').textContent=stats.completedCount!==undefined?stats.completedCount:allRows.filter(function(r){return r.jam_keluar;}).length;
+      $('kvTerlambat').textContent=stats.lateCount!==undefined?stats.lateCount:allRows.filter(function(r){return r.terlambat;}).length;
+      $('kvAlpha').textContent=stats.absentCount!==undefined?stats.absentCount:allAbsent.length;
+      $('kvLibur').textContent=stats.offCount!==undefined?stats.offCount:allOff.length;
+      var now=new Date();
+      $('lastUpdated').textContent='Diperbarui: '+now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).replace(/\./g,':')+' WIB';
+      renderTables();
+    } catch(err){
+      console.error('Gagal memuat data live:',err);
+      $('lastUpdated').textContent='Gagal memuat data';
+    }
+  }
+
+  function startCountdown(){
+    countdownVal=REFRESH_SECS;
+    clearInterval(countdownInterval);
+    countdownInterval=setInterval(function(){
+      countdownVal--;
+      $('refreshCountdown').textContent=countdownVal+'s';
+      $('refreshBarFill').style.width=((countdownVal/REFRESH_SECS)*100)+'%';
+      if(countdownVal<=0){ fetchData(); countdownVal=REFRESH_SECS; }
+    },1000);
+  }
+
+  fetchData();
+  startCountdown();
+</script>
+</body>
+</html>
