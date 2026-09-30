@@ -1045,7 +1045,8 @@ app.get('/api/attendance/export-period.xlsx', async (req, res) => {
     const schedules = await db.all('SELECT employee_id, hari, shift, piket FROM schedules');
     const attendances = await db.all(`
       SELECT a.id, a.employee_id, a.tanggal, a.jam_masuk, a.jam_keluar, a.shift,
-        e.nama, e.nip
+        e.nama, e.nip, COALESCE(a.foto_masuk, e.foto) AS foto_masuk, a.foto_keluar,
+        CASE WHEN a.jam_keluar IS NULL THEN 'belum pulang' ELSE 'lengkap' END AS status
       FROM attendance a
       JOIN employees e ON e.id = a.employee_id
       WHERE a.tanggal >= ? AND a.tanggal <= ?
@@ -1138,41 +1139,96 @@ app.get('/api/attendance/export-period.xlsx', async (req, res) => {
     });
 
     const sheet2 = workbook.addWorksheet('Detail Harian');
-    sheet2.getRow(1).values = ['No', 'Tanggal', 'Hari', 'NIP / ID', 'Nama Karyawan', 'Shift', 'Jam Masuk', 'Jam Keluar', 'Status'];
-    sheet2.getRow(1).font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-    sheet2.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F7C72' } };
-    sheet2.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
 
     sheet2.columns = [
-      { width: 6 },
-      { width: 14 },
-      { width: 12 },
-      { width: 16 },
-      { width: 26 },
-      { width: 14 },
-      { width: 14 },
-      { width: 14 },
-      { width: 16 }
+      { header: 'Foto Masuk', key: 'foto_masuk_placeholder', width: 25 },
+      { header: 'Foto Keluar', key: 'foto_keluar_placeholder', width: 25 },
+      { header: 'Tanggal', key: 'tanggal', width: 16 },
+      { header: 'Nama Karyawan', key: 'nama', width: 28 },
+      { header: 'NIP / ID', key: 'nip', width: 18 },
+      { header: 'Shift', key: 'shift', width: 15 },
+      { header: 'Jam Masuk', key: 'jam_masuk', width: 15 },
+      { header: 'Jam Keluar', key: 'jam_keluar', width: 15 },
+      { header: 'Status Kehadiran', key: 'status', width: 20 },
+      { header: 'Keterangan', key: 'keterangan', width: 16 }
     ];
 
-    let detailIdx = 2;
+    const headerRow2 = sheet2.getRow(1);
+    headerRow2.font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F7C72' } };
+    headerRow2.height = 32;
+    headerRow2.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    const borderStyle2 = {
+      top: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+      left: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+      bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+      right: { style: 'thin', color: { argb: 'FFE0E0E0' } }
+    };
+
     attendances.forEach((att, idx) => {
       const isLate = isLateClock(att.jam_masuk, att.shift, settings);
-      const r = sheet2.getRow(detailIdx++);
-      r.values = [
-        idx + 1,
-        att.tanggal,
-        getDayName(att.tanggal),
-        att.nip,
-        att.nama,
-        att.shift || '-',
-        att.jam_masuk || '-',
-        att.jam_keluar || '-',
-        isLate ? 'Terlambat' : 'Tepat Waktu'
-      ];
-      r.alignment = { vertical: 'middle', horizontal: 'center' };
-      r.getCell(4).alignment = { vertical: 'middle', horizontal: 'left' };
-      r.getCell(5).alignment = { vertical: 'middle', horizontal: 'left' };
+      const rowIndex = idx + 2;
+      const addedRow = sheet2.addRow({
+        foto_masuk_placeholder: '',
+        foto_keluar_placeholder: att.foto_keluar ? '' : '(Belum Keluar)',
+        tanggal: att.tanggal,
+        nama: att.nama,
+        nip: att.nip,
+        shift: att.shift || '-',
+        jam_masuk: att.jam_masuk || '-',
+        jam_keluar: att.jam_keluar || '-',
+        status: att.status,
+        keterangan: isLate ? 'Terlambat' : 'Tepat Waktu'
+      });
+
+      addedRow.height = 72;
+      addedRow.font = { name: 'Calibri', size: 11 };
+
+      addedRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        cell.border = borderStyle2;
+        if (colNumber === 1 || colNumber === 2 || colNumber === 3 || colNumber === 5 || colNumber === 6 || colNumber === 7 || colNumber === 8 || colNumber === 9 || colNumber === 10) {
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        } else {
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        }
+      });
+
+      if (!att.foto_keluar) {
+        sheet2.getCell(`B${rowIndex}`).font = { name: 'Calibri', size: 11, italic: true, color: { argb: 'FF888888' } };
+      }
+
+      if (att.foto_masuk && typeof att.foto_masuk === 'string' && att.foto_masuk.includes(',')) {
+        try {
+          const parts = att.foto_masuk.split(',');
+          const base64Data = parts[1];
+          const ext = parts[0].includes('png') ? 'png' : 'jpeg';
+          const imageId = workbook.addImage({ base64: base64Data, extension: ext });
+          sheet2.addImage(imageId, {
+            tl: { col: 0.12, row: rowIndex - 1 + 0.08 },
+            ext: { width: 110, height: 84 },
+            editAs: 'oneCell'
+          });
+        } catch (err) {
+          console.warn('Gagal menyematkan foto masuk ke Excel:', err.message);
+        }
+      }
+
+      if (att.foto_keluar && typeof att.foto_keluar === 'string' && att.foto_keluar.includes(',')) {
+        try {
+          const parts = att.foto_keluar.split(',');
+          const base64Data = parts[1];
+          const ext = parts[0].includes('png') ? 'png' : 'jpeg';
+          const imageId = workbook.addImage({ base64: base64Data, extension: ext });
+          sheet2.addImage(imageId, {
+            tl: { col: 1.12, row: rowIndex - 1 + 0.08 },
+            ext: { width: 110, height: 84 },
+            editAs: 'oneCell'
+          });
+        } catch (err) {
+          console.warn('Gagal menyematkan foto keluar ke Excel:', err.message);
+        }
+      }
     });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
