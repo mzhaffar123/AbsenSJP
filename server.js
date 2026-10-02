@@ -213,7 +213,7 @@ async function refreshExcelFile() {
   const rawRows = await db.all(`
     SELECT a.tanggal, e.nama, e.nip, COALESCE(a.shift, '-') AS shift, a.jam_masuk, a.jam_keluar,
       COALESCE(a.foto_masuk, e.foto) AS foto_masuk,
-      a.foto_keluar,
+      CASE WHEN a.jam_keluar IS NOT NULL THEN COALESCE(a.foto_keluar, e.foto) ELSE a.foto_keluar END AS foto_keluar,
       CASE WHEN a.jam_keluar IS NULL THEN 'belum pulang' ELSE 'lengkap' END AS status
     FROM attendance a JOIN employees e ON e.id = a.employee_id
     ORDER BY a.tanggal DESC, a.jam_masuk DESC, e.nama
@@ -455,61 +455,136 @@ app.post('/api/attendance/checkin', async (req, res) => {
   const schedule = shiftInfo(assignedShift, settings);
   const shift = assignedShift === 'Otomatis' ? schedule.shift : assignedShift;
   const tanggal = attendanceDateForShift(shift, settings);
-  const attendance = await db.get('SELECT id, jam_masuk, jam_keluar, shift FROM attendance WHERE employee_id = ? AND tanggal = ? AND shift = ?', [best.id, tanggal, shift]);
+
+  // 1. Cari apakah karyawan punya catatan absensi yang SEDANG AKTIF (sudah masuk, belum keluar)
+  const activeAttendance = await db.get(`
+    SELECT id, tanggal, jam_masuk, jam_keluar, shift, foto_masuk, foto_keluar
+    FROM attendance
+    WHERE employee_id = ? AND jam_masuk IS NOT NULL AND jam_keluar IS NULL
+    ORDER BY id DESC LIMIT 1
+  `, [best.id]);
+
   let status;
-  if (mode === 'masuk') {
-    if (schedule.outside) return res.status(403).json({ recognized: true, outsideShift: true, status: 'di luar shift', nama: best.nama, nip: best.nip, shift, error: `Jadwal Anda adalah ${assignedShift}. Absensi hanya dapat dilakukan pada jam shift tersebut.` });
-    if (attendance) return res.status(409).json({ recognized: true, duplicate: true, status: 'sudah masuk', nama: best.nama, nip: best.nip, shift: attendance.shift, error: 'Absen masuk untuk shift ini sudah tercatat.' });
-    const activeOtherShift = await db.get(
-      'SELECT id, shift FROM attendance WHERE employee_id = ? AND tanggal = ? AND jam_masuk IS NOT NULL AND jam_keluar IS NULL AND shift != ?',
-      [best.id, tanggal, shift]
-    );
-    if (activeOtherShift) {
+
+  if (mode === 'keluar') {
+    if (activeAttendance) {
+      const outPhoto = foto_keluar || foto || best.foto;
+      await db.run('UPDATE attendance SET jam_keluar = ?, foto_keluar = ? WHERE id = ?', [jam, outPhoto, activeAttendance.id]);
+      status = 'keluar';
+    } else {
+      const completedToday = await db.get(`
+        SELECT id, jam_masuk, jam_keluar, shift, foto_keluar
+        FROM attendance
+        WHERE employee_id = ? AND (tanggal = ? OR tanggal = ?) AND jam_keluar IS NOT NULL
+        ORDER BY id DESC LIMIT 1
+      `, [best.id, tanggal, isoDate()]);
+
+      if (completedToday) {
+        if (!completedToday.foto_keluar && (foto_keluar || foto)) {
+          await db.run('UPDATE attendance SET foto_keluar = ? WHERE id = ?', [foto_keluar || foto, completedToday.id]);
+        }
+        return res.json({
+          recognized: true,
+          duplicate: true,
+          status: 'selesai',
+          nama: best.nama,
+          nip: best.nip,
+          jam: completedToday.jam_keluar,
+          shift: completedToday.shift,
+          distance: best.distance,
+          isPiket: isPiketToday
+        });
+      }
+      return res.status(409).json({
+        recognized: true,
+        status: 'belum masuk',
+        nama: best.nama,
+        nip: best.nip,
+        shift,
+        error: 'Absen keluar tidak dapat dilakukan sebelum absen masuk.'
+      });
+    }
+  } else if (mode === 'masuk') {
+    if (activeAttendance) {
       return res.status(409).json({
         recognized: true,
         duplicate: true,
-        status: 'belum pulang',
+        status: 'sudah masuk',
         nama: best.nama,
         nip: best.nip,
-        shift: activeOtherShift.shift,
-        error: `Anda belum melakukan absen keluar untuk ${activeOtherShift.shift}. Selesaikan absen keluar terlebih dahulu.`
+        shift: activeAttendance.shift,
+        error: `Anda sudah absen masuk untuk ${activeAttendance.shift}. Silakan lakukan absen keluar terlebih dahulu.`
+      });
+    }
+    const alreadyAttendedShift = await db.get(`
+      SELECT id, shift, jam_keluar FROM attendance WHERE employee_id = ? AND tanggal = ? AND shift = ?
+    `, [best.id, tanggal, shift]);
+    if (alreadyAttendedShift) {
+      return res.status(409).json({
+        recognized: true,
+        duplicate: true,
+        status: alreadyAttendedShift.jam_keluar ? 'selesai' : 'sudah masuk',
+        nama: best.nama,
+        nip: best.nip,
+        shift,
+        error: 'Absensi untuk shift ini sudah tercatat.'
+      });
+    }
+    if (schedule.outside) {
+      return res.status(403).json({
+        recognized: true,
+        outsideShift: true,
+        status: 'di luar shift',
+        nama: best.nama,
+        nip: best.nip,
+        shift,
+        error: `Jadwal Anda adalah ${assignedShift}. Absensi hanya dapat dilakukan pada jam shift tersebut.`
       });
     }
     await db.run('INSERT INTO attendance (employee_id, tanggal, jam_masuk, shift, foto_masuk) VALUES (?, ?, ?, ?, ?)', [best.id, tanggal, jam, shift, foto_masuk || foto || best.foto]);
     status = 'masuk';
-  } else if (mode === 'keluar') {
-    if (!attendance) return res.status(409).json({ recognized: true, status: 'belum masuk', nama: best.nama, nip: best.nip, shift, error: 'Absen keluar tidak dapat dilakukan sebelum absen masuk.' });
-    if (attendance.jam_keluar) return res.json({ recognized: true, duplicate: true, status: 'selesai', nama: best.nama, nip: best.nip, jam: attendance.jam_keluar, shift: attendance.shift, distance: best.distance, isPiket: isPiketToday });
-    if (!shiftHasEnded(attendance.shift || shift, settings)) {
-      return res.status(403).json({ recognized: true, tooEarly: true, status: 'belum selesai', nama: best.nama, nip: best.nip, shift: attendance.shift || shift, error: `Absen keluar baru dapat dilakukan setelah ${attendance.shift === 'Shift 1' ? '14.00' : attendance.shift === 'Shift 2' ? '22.00' : '06.00'}.` });
-    }
-    await db.run('UPDATE attendance SET jam_keluar = ?, foto_keluar = ? WHERE id = ?', [jam, foto_keluar || foto || best.foto, attendance.id]);
-    status = 'keluar';
-  } else if (!attendance) {
-    if (schedule.outside) return res.status(403).json({ recognized: true, outsideShift: true, status: 'di luar shift', nama: best.nama, nip: best.nip, shift, error: `Jadwal Anda adalah ${assignedShift}. Absensi hanya dapat dilakukan pada jam shift tersebut.` });
-    const activeOtherShiftAuto = await db.get(
-      'SELECT id, shift FROM attendance WHERE employee_id = ? AND tanggal = ? AND jam_masuk IS NOT NULL AND jam_keluar IS NULL AND shift != ?',
-      [best.id, tanggal, shift]
-    );
-    if (activeOtherShiftAuto) {
-      return res.status(409).json({
-        recognized: true,
-        duplicate: true,
-        status: 'belum pulang',
-        nama: best.nama,
-        nip: best.nip,
-        shift: activeOtherShiftAuto.shift,
-        error: `Anda belum melakukan absen keluar untuk ${activeOtherShiftAuto.shift}. Selesaikan absen keluar terlebih dahulu.`
-      });
-    }
-    await db.run('INSERT INTO attendance (employee_id, tanggal, jam_masuk, shift, foto_masuk) VALUES (?, ?, ?, ?, ?)', [best.id, tanggal, jam, shift, foto_masuk || foto || best.foto]);
-    status = 'masuk';
-  } else if (!attendance.jam_keluar) {
-    if (!shiftHasEnded(attendance.shift || shift, settings)) return res.status(403).json({ recognized: true, tooEarly: true, status: 'belum selesai', nama: best.nama, nip: best.nip, shift: attendance.shift || shift, error: `Absen keluar baru dapat dilakukan setelah ${attendance.shift === 'Shift 1' ? '14.00' : attendance.shift === 'Shift 2' ? '22.00' : '06.00'}.` });
-    await db.run('UPDATE attendance SET jam_keluar = ?, foto_keluar = ? WHERE id = ?', [jam, foto_keluar || foto || best.foto, attendance.id]);
-    status = 'keluar';
   } else {
-    return res.json({ recognized: true, duplicate: true, status: 'selesai', nama: best.nama, nip: best.nip, jam: attendance.jam_keluar, shift: attendance.shift, distance: best.distance, isPiket: isPiketToday });
+    // Mode 'auto' (Otomatis)
+    if (activeAttendance) {
+      const outPhoto = foto_keluar || foto || best.foto;
+      await db.run('UPDATE attendance SET jam_keluar = ?, foto_keluar = ? WHERE id = ?', [jam, outPhoto, activeAttendance.id]);
+      status = 'keluar';
+    } else {
+      const alreadyAttended = await db.get(`
+        SELECT id, jam_masuk, jam_keluar, shift, foto_keluar FROM attendance WHERE employee_id = ? AND tanggal = ? AND shift = ?
+      `, [best.id, tanggal, shift]);
+
+      if (alreadyAttended) {
+        if (!alreadyAttended.foto_keluar && (foto_keluar || foto)) {
+          await db.run('UPDATE attendance SET foto_keluar = ? WHERE id = ?', [foto_keluar || foto, alreadyAttended.id]);
+        }
+        return res.json({
+          recognized: true,
+          duplicate: true,
+          status: 'selesai',
+          nama: best.nama,
+          nip: best.nip,
+          jam: alreadyAttended.jam_keluar,
+          shift: alreadyAttended.shift,
+          distance: best.distance,
+          isPiket: isPiketToday
+        });
+      }
+
+      if (schedule.outside) {
+        return res.status(403).json({
+          recognized: true,
+          outsideShift: true,
+          status: 'di luar shift',
+          nama: best.nama,
+          nip: best.nip,
+          shift,
+          error: `Jadwal Anda adalah ${assignedShift}. Absensi hanya dapat dilakukan pada jam shift tersebut.`
+        });
+      }
+      await db.run('INSERT INTO attendance (employee_id, tanggal, jam_masuk, shift, foto_masuk) VALUES (?, ?, ?, ?, ?)', [best.id, tanggal, jam, shift, foto_masuk || foto || best.foto]);
+      status = 'masuk';
+    }
   }
   let excelUpdated = true;
   try {
@@ -541,7 +616,7 @@ app.get('/api/attendance', async (req, res) => {
   const rawRows = await db.all(`
     SELECT a.id, a.tanggal, e.id AS employee_id, e.nama, e.nip, e.foto,
       COALESCE(a.foto_masuk, e.foto) AS foto_masuk,
-      a.foto_keluar,
+      CASE WHEN a.jam_keluar IS NOT NULL THEN COALESCE(a.foto_keluar, e.foto) ELSE a.foto_keluar END AS foto_keluar,
       e.shift AS default_shift, a.jam_masuk, a.jam_keluar, COALESCE(a.shift, '-') AS shift,
       CASE WHEN a.jam_keluar IS NULL THEN 'belum pulang' ELSE 'lengkap' END AS status
     FROM attendance a JOIN employees e ON e.id = a.employee_id
@@ -683,12 +758,15 @@ app.put('/api/attendance/:id', async (req, res) => {
     if (!id || !jam_masuk) {
       return res.status(400).json({ error: 'ID dan jam masuk wajib diisi.' });
     }
-    const record = await db.get('SELECT id FROM attendance WHERE id = ?', [id]);
+    const record = await db.get('SELECT id, employee_id, foto_keluar FROM attendance WHERE id = ?', [id]);
     if (!record) return res.status(404).json({ error: 'Data absensi tidak ditemukan.' });
 
+    const emp = await db.get('SELECT foto FROM employees WHERE id = ?', [record.employee_id]);
+    const updatedFotoKeluar = jam_keluar ? (record.foto_keluar || emp?.foto || null) : null;
+
     await db.run(
-      'UPDATE attendance SET shift = COALESCE(?, shift), jam_masuk = ?, jam_keluar = ? WHERE id = ?',
-      [shift || null, jam_masuk, jam_keluar || null, id]
+      'UPDATE attendance SET shift = COALESCE(?, shift), jam_masuk = ?, jam_keluar = ?, foto_keluar = ? WHERE id = ?',
+      [shift || null, jam_masuk, jam_keluar || null, updatedFotoKeluar, id]
     );
 
     try { await queueExcelRefresh(); } catch (err) { console.error('Excel refresh error:', err.message); }
@@ -1045,7 +1123,8 @@ app.get('/api/attendance/export-period.xlsx', async (req, res) => {
     const schedules = await db.all('SELECT employee_id, hari, shift, piket FROM schedules');
     const attendances = await db.all(`
       SELECT a.id, a.employee_id, a.tanggal, a.jam_masuk, a.jam_keluar, a.shift,
-        e.nama, e.nip, COALESCE(a.foto_masuk, e.foto) AS foto_masuk, a.foto_keluar,
+        e.nama, e.nip, COALESCE(a.foto_masuk, e.foto) AS foto_masuk,
+        CASE WHEN a.jam_keluar IS NOT NULL THEN COALESCE(a.foto_keluar, e.foto) ELSE a.foto_keluar END AS foto_keluar,
         CASE WHEN a.jam_keluar IS NULL THEN 'belum pulang' ELSE 'lengkap' END AS status
       FROM attendance a
       JOIN employees e ON e.id = a.employee_id

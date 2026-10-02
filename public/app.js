@@ -535,7 +535,7 @@ async function initDashboard() {
         ? filteredRows.map((row) => {
             const isDifferentShift = row.jadwal_shift && row.jadwal_shift !== 'Libur (Off)' && row.jadwal_shift !== 'Otomatis' && row.shift !== row.jadwal_shift;
             const imgMasuk = row.foto_masuk || row.foto || '';
-            const imgKeluar = row.foto_keluar || '';
+            const imgKeluar = row.foto_keluar || (row.jam_keluar ? (row.foto_masuk || row.foto || '') : '');
             const statusLabel = row.status === 'lengkap' ? 'Selesai' : 'Belum Pulang';
             return `
             <tr>
@@ -543,7 +543,7 @@ async function initDashboard() {
                 ${imgMasuk ? `<img src="${imgMasuk}" alt="Foto Masuk" width="56" height="42" style="object-fit:cover;border-radius:6px;background:#e2ebe6;border:1.5px solid #10b981;cursor:pointer;" title="Klik untuk lihat foto masuk" onclick="window.open('${imgMasuk}','_blank')">` : '<span style="color:var(--muted);font-size:11px;">—</span>'}
               </td>
               <td>
-                ${imgKeluar ? `<img src="${imgKeluar}" alt="Foto Keluar" width="56" height="42" style="object-fit:cover;border-radius:6px;background:#e2ebe6;border:1.5px solid #0284c7;cursor:pointer;" title="Klik untuk lihat foto keluar" onclick="window.open('${imgKeluar}','_blank')">` : '<span class="badge" style="background:#f1f5f9;color:#64748b;font-size:10px;padding:3px 6px;">Belum Pulang</span>'}
+                ${imgKeluar ? `<img src="${imgKeluar}" alt="Foto Keluar" width="56" height="42" style="object-fit:cover;border-radius:6px;background:#e2ebe6;border:1.5px solid #0284c7;cursor:pointer;" title="Klik untuk lihat foto keluar" onclick="window.open('${imgKeluar}','_blank')">` : (row.status === 'lengkap' ? '<span class="badge" style="background:#dbeafe;color:#1e40af;font-size:10px;padding:3px 6px;">✓ Selesai</span>' : '<span class="badge" style="background:#f1f5f9;color:#64748b;font-size:10px;padding:3px 6px;">Belum Pulang</span>')}
               </td>
               <td>
                 <strong>${escapeHtml(row.nama)}</strong>

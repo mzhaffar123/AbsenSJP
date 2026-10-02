@@ -149,6 +149,8 @@ async function initDb() {
         piket INTEGER NOT NULL DEFAULT 0,
         UNIQUE(employee_id, hari)
       );
+      ALTER TABLE attendance ADD COLUMN IF NOT EXISTS foto_masuk TEXT;
+      ALTER TABLE attendance ADD COLUMN IF NOT EXISTS foto_keluar TEXT;
     `);
   } else {
     sqliteDb.exec(`
@@ -187,6 +189,8 @@ async function initDb() {
         FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
       );
     `);
+    try { sqliteDb.exec("ALTER TABLE attendance ADD COLUMN foto_masuk TEXT"); } catch (_) {}
+    try { sqliteDb.exec("ALTER TABLE attendance ADD COLUMN foto_keluar TEXT"); } catch (_) {}
   }
 
   const defaultSettings = {
