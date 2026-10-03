@@ -468,6 +468,28 @@ app.post('/api/attendance/checkin', async (req, res) => {
 
   if (mode === 'keluar') {
     if (activeAttendance) {
+      const targetShift = ['Shift 1', 'Shift 2', 'Shift 3'].includes(activeAttendance.shift)
+        ? activeAttendance.shift
+        : (['Shift 1', 'Shift 2', 'Shift 3'].includes(shift) ? shift : 'Shift 1');
+
+      if (!shiftHasEnded(targetShift, settings)) {
+        const endTimes = {
+          'Shift 1': settings.shift1_end || '14:00',
+          'Shift 2': settings.shift2_end || '22:00',
+          'Shift 3': settings.shift3_end || '06:00'
+        };
+        const jamSelesai = endTimes[targetShift] || '14:00';
+        return res.status(403).json({
+          recognized: true,
+          tooEarly: true,
+          status: 'belum selesai',
+          nama: best.nama,
+          nip: best.nip,
+          shift: targetShift,
+          error: `Jam kerja ${targetShift} belum selesai. Absen keluar baru dapat dilakukan setelah jam ${jamSelesai}.`
+        });
+      }
+
       const outPhoto = foto_keluar || foto || best.foto;
       await db.run('UPDATE attendance SET jam_keluar = ?, foto_keluar = ? WHERE id = ?', [jam, outPhoto, activeAttendance.id]);
       status = 'keluar';
@@ -546,6 +568,28 @@ app.post('/api/attendance/checkin', async (req, res) => {
   } else {
     // Mode 'auto' (Otomatis)
     if (activeAttendance) {
+      const targetShift = ['Shift 1', 'Shift 2', 'Shift 3'].includes(activeAttendance.shift)
+        ? activeAttendance.shift
+        : (['Shift 1', 'Shift 2', 'Shift 3'].includes(shift) ? shift : 'Shift 1');
+
+      if (!shiftHasEnded(targetShift, settings)) {
+        const endTimes = {
+          'Shift 1': settings.shift1_end || '14:00',
+          'Shift 2': settings.shift2_end || '22:00',
+          'Shift 3': settings.shift3_end || '06:00'
+        };
+        const jamSelesai = endTimes[targetShift] || '14:00';
+        return res.status(403).json({
+          recognized: true,
+          tooEarly: true,
+          status: 'belum selesai',
+          nama: best.nama,
+          nip: best.nip,
+          shift: targetShift,
+          error: `Jam kerja ${targetShift} belum selesai. Absen keluar baru dapat dilakukan setelah jam ${jamSelesai}.`
+        });
+      }
+
       const outPhoto = foto_keluar || foto || best.foto;
       await db.run('UPDATE attendance SET jam_keluar = ?, foto_keluar = ? WHERE id = ?', [jam, outPhoto, activeAttendance.id]);
       status = 'keluar';
